@@ -1,3 +1,4 @@
+import * as Discord from "discord.js";
 import { hoursToMilliseconds } from "date-fns";
 import { ButtonComponentData, ButtonStyle, ComponentType, InteractionReplyOptions } from "discord.js";
 import superagent from "superagent";

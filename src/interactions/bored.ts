@@ -17,6 +17,7 @@ import { versionSubcommandConfig, handleVersionSubcommand } from "./version";
 import { throwdownSubcommandGroupConfig, handleThrowdownSubcommand } from "./throwdown";
 import { meetupSubcommandGroupConfig, handleMeetupSubcommand } from "./meetup";
 import { changelogSubcommandConfig, handleChangelogSubcommand } from "./changelog";
+import { banSubcommandConfig, handleBanSubcommand } from "./ban";
 
 
 const buildCommand = () => {
@@ -32,7 +33,8 @@ const buildCommand = () => {
       christmasSubcommandConfig,
       pongSubcommandConfig,
       versionSubcommandConfig,
-      changelogSubcommandConfig
+      changelogSubcommandConfig,
+      banSubcommandConfig
    ];
 
    for (const sub of subcommands) {
@@ -130,7 +132,7 @@ const addOptionToCommand = (builder: any, opt: any) => {
 const command = buildCommand();
 
 export const bored: interaction = {
-   config: [command],
+   config: [command as any],
 
    handle: async (interaction, world) => {
       if (interaction.commandName !== "bored") return;
@@ -168,6 +170,8 @@ export const bored: interaction = {
             return handleVersionSubcommand(interaction);
          case "changelog":
             return handleChangelogSubcommand(interaction);
+         case "ban":
+            return handleBanSubcommand(interaction);
          default:
             throw new Error(`Unrecognized subcommand '${subcommand}'`);
       }

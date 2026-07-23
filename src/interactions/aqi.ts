@@ -1,4 +1,5 @@
 import { convert } from "@shootismoke/convert";
+import * as Discord from "discord.js";
 import { InteractionReplyOptions } from "discord.js";
 import superagent from "superagent";
 import { Result, Option } from "@swan-io/boxed";

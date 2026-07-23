@@ -16,6 +16,7 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
 - [Command Structure](#command-structure)
 - [/bored — Public Commands](#bored--public-commands)
   - [/bored aqi](#bored-aqi)
+  - [/bored ban](#bored-ban)
   - [/bored changelog](#bored-changelog)
   - [/bored christmas](#bored-christmas)
   - [/bored define](#bored-define)
@@ -180,6 +181,18 @@ Replies with an embed showing readings for Downtown San Jose, East San Jose, Sou
 - 🟡 **Sketchy** (50–99)
 - 🟠 **Bad** (100–149)
 - 🔴 **Terrible** (150+)
+
+---
+
+### /bored ban `<user>`
+
+Playfully "ban" a user from the server with a randomly selected funny reason.
+
+| Option | Required | Description |
+|---|---|---|
+| `user` | ✅ | The user to playfully ban |
+
+> **Note:** Watch out! There is a 1-in-6 chance that the command backfires and times out the command caller for 60 seconds with a self-ban reason.
 
 ---
 
