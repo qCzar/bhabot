@@ -1,0 +1,40 @@
+import * as Hapi from "@hapi/hapi";
+import * as Boom from "@hapi/boom";
+import * as D from "discord.js";
+import * as z from "zod";
+import { getSetting } from "../environment";
+
+const reddit_icon = "https://imgur.com/DMxh8yy.png";
+
+const reqSchema = z.object ({
+   title: z.string (),
+   url: z.string (),
+   author: z.string (),
+   secret: z.string ()
+});
+
+type schema = z.infer<typeof reqSchema>
+
+const render = (s: schema): D.MessageReplyOptions => ({
+   embeds: [{
+      color: 0xff4500,
+      author: {
+         icon_url: reddit_icon,
+         name: s.title,
+         url: s.url
+      }
+   }]
+});
+
+export const webhook = (client: D.Client): Hapi.ServerRoute => ({
+   method: "POST",
+   path: "/reddit-webhook",
+   handler: async req => {
+      const body = reqSchema.parse (req.payload);
+      if (body.secret !== getSetting(null, "REDDIT_SECRET")) throw Boom.unauthorized ();
+      
+      const shitpost = await client.channels.fetch (getSetting(null, "CHANNEL_SHITPOST"));
+      shitpost?.isTextBased () && shitpost.send (render (body));
+      return "Done";
+   }
+});
