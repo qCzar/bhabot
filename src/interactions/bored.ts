@@ -1,7 +1,6 @@
 import * as Discord from "discord.js";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { interaction } from "../interaction";
-import { aqiSubcommandConfig, handleAqiSubcommand } from "./aqi";
 import { defineSubcommandConfig, handleDefineSubcommand } from "./define";
 import { 
    activitySubcommandGroupConfig, 
@@ -27,7 +26,6 @@ const buildCommand = () => {
 
    // Add flat subcommands
    const subcommands = [
-      aqiSubcommandConfig,
       defineSubcommandConfig,
       mentionSubcommandConfig,
       christmasSubcommandConfig,
@@ -156,8 +154,6 @@ export const bored: interaction = {
       }
 
       switch (subcommand) {
-         case "aqi":
-            return handleAqiSubcommand(interaction);
          case "define":
             return handleDefineSubcommand(interaction);
          case "mention":

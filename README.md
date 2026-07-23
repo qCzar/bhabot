@@ -15,7 +15,6 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
 - [Scripts](#scripts)
 - [Command Structure](#command-structure)
 - [/bored — Public Commands](#bored--public-commands)
-  - [/bored aqi](#bored-aqi)
   - [/bored ban](#bored-ban)
   - [/bored changelog](#bored-changelog)
   - [/bored christmas](#bored-christmas)
@@ -168,19 +167,6 @@ Each command uses **subcommand groups** to organize related features. This keeps
 ## /bored — Public Commands
 
 General-purpose commands available to all server members.
-
----
-
-### /bored aqi
-
-Show the current Air Quality Index from Purple Air sensors across the South Bay.
-
-Replies with an embed showing readings for Downtown San Jose, East San Jose, South San Jose, Santa Clara, Mountain View, and San Mateo, color-coded by quality:
-
-- 🟢 **Good** (< 50)
-- 🟡 **Sketchy** (50–99)
-- 🟠 **Bad** (100–149)
-- 🔴 **Terrible** (150+)
 
 ---
 
