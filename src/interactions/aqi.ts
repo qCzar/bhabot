@@ -146,19 +146,23 @@ const fetchSensors = (ids: string[]): Promise<apiSensor[]> =>
       .query ({ show: ids.join ("|") })
       .then (it => (<apiResponse>it.body).results);
 
-export const aqi = Interaction.make ({
-   config: [{
-      name: "aqi",
-      description: "Show the current AQI reading from over the south bay",
-      type: Interaction.commandType.slash
-   }],
+export const aqiSubcommandConfig: Interaction.option = {
+   type: Interaction.optionType.sub_command,
+   name: "aqi",
+   description: "Show the current AQI reading from over the south bay",
+   options: [{
+      type: Interaction.optionType.string,
+      name: "zip",
+      description: "ZIP code (optional, currently defaults to South Bay)",
+      required: false
+   }]
+};
 
-   handle: interaction => {
-      const ids = sources.map (sourceId);
-      const reply = fetchSensors (ids)
-         .then (makeAqiReply)
-         .catch (just (apiFailedReply));
+export const handleAqiSubcommand = (interaction: Discord.ChatInputCommandInteraction) => {
+   const ids = sources.map (sourceId);
+   const reply = fetchSensors (ids)
+      .then (makeAqiReply)
+      .catch (just (apiFailedReply));
 
-      reply.then (_ => interaction.reply (_), interactionFailed);
-   }
-});
+   reply.then (_ => interaction.reply (_), interactionFailed);
+};

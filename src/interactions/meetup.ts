@@ -12,97 +12,96 @@ import { getSetting } from "../environment";
 
 const { commandType, optionType } = Interaction;
 
-export const meetup = Interaction.make ({
-   config: [{
-      name: "meetup",
-      description: "Create, manage, and interact with meetups",
-      type: commandType.slash,
-      options: [
-         {
-            type: optionType.sub_command,
-            name: "create",
-            description: "Create a new meetup from YAML options",
-            options: [{
-               type: optionType.string,
-               name: "options",
-               description: "Paste the YAML from the meetup web UI",
-               required: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "edit",
-            description: "Edit an existing meetup (use in meetup thread)",
-            options: [{
-               type: optionType.string,
-               name: "options",
-               description: "Paste the updated YAML from the meetup web UI",
-               required: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "cancel",
-            description: "Cancel a meetup (use in meetup thread)",
-            options: [{
-               type: optionType.string,
-               name: "reason",
-               description: "Reason for cancelling the meetup",
-               required: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "announce",
-            description: "Ping all RSVPs in the meetup (use in meetup thread)"
-         },
-         {
-            type: optionType.sub_command,
-            name: "help",
-            description: "Show help information for the meetup command"
-         },
-         {
-            type: optionType.sub_command_group,
-            name: "admin",
-            description: "Admin meetup commands",
-            options: [{
-               type: optionType.sub_command,
-               name: "refresh",
-               description: "Refresh all live meetup announcements"
-            }]
-         }
-      ]
-   }],
-
-   handle: async (interaction) => {
-      const group = interaction.options.getSubcommandGroup ();
-      const subcommand = interaction.options.getSubcommand ();
-
-      if (group === "admin") {
-         switch (subcommand) {
-            case "refresh":
-               return handleAdminRefresh (interaction);
-            default:
-               return interaction.reply ({ content: "Unknown admin command.", ephemeral: true });
-         }
+export const meetupSubcommandGroupConfig: Interaction.option = {
+   type: optionType.sub_command_group,
+   name: "meetup",
+   description: "Create, manage, and interact with meetups",
+   options: [
+      {
+         type: optionType.sub_command,
+         name: "create",
+         description: "Create a new meetup from YAML options",
+         options: [{
+            type: optionType.string,
+            name: "options",
+            description: "Paste the YAML from the meetup web UI",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "edit",
+         description: "Edit an existing meetup (use in meetup thread)",
+         options: [{
+            type: optionType.string,
+            name: "options",
+            description: "Paste the updated YAML from the meetup web UI",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "cancel",
+         description: "Cancel a meetup (use in meetup thread)",
+         options: [{
+            type: optionType.string,
+            name: "reason",
+            description: "Reason for cancelling the meetup",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "announce",
+         description: "Ping all RSVPs in the meetup (use in meetup thread)"
+      },
+      {
+         type: optionType.sub_command,
+         name: "help",
+         description: "Show help information for the meetup command"
       }
+   ]
+};
 
-      switch (subcommand) {
-         case "create":
-            return handleCreate (interaction);
-         case "edit":
-            return handleEdit (interaction);
-         case "cancel":
-            return handleCancel (interaction);
-         case "announce":
-            return handleAnnounce (interaction);
-         case "help":
-            return handleHelp (interaction);
-         default:
-            return interaction.reply ({ content: "Unknown meetup command.", ephemeral: true });
-      }
+export const meetupAdminSubcommandGroupConfig: Interaction.option = {
+   type: optionType.sub_command_group,
+   name: "meetup",
+   description: "Admin meetup commands",
+   options: [{
+      type: optionType.sub_command,
+      name: "refresh",
+      description: "Refresh all live meetup announcements"
+   }]
+};
+
+export const handleMeetupSubcommand = async (interaction: Discord.ChatInputCommandInteraction) => {
+   const subcommand = interaction.options.getSubcommand ();
+   switch (subcommand) {
+      case "create":
+         return handleCreate (interaction);
+      case "edit":
+         return handleEdit (interaction);
+      case "cancel":
+         return handleCancel (interaction);
+      case "announce":
+         return handleAnnounce (interaction);
+      case "help":
+         return handleHelp (interaction);
+      default:
+         return interaction.reply ({ content: "Unknown meetup command.", ephemeral: true });
    }
-});
+};
+
+export const handleMeetupAdminSubcommand = async (interaction: Discord.ChatInputCommandInteraction) => {
+   const subcommand = interaction.options.getSubcommand ();
+   switch (subcommand) {
+      case "refresh":
+         return handleAdminRefresh (interaction);
+      default:
+         return interaction.reply ({ content: "Unknown admin command.", ephemeral: true });
+   }
+};
+
 
 
 async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {

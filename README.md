@@ -13,19 +13,24 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
   - [3. Register the Bot with Discord](#3-register-the-bot-with-discord)
   - [4. Run the Bot](#4-run-the-bot)
 - [Scripts](#scripts)
-- [Slash Commands](#slash-commands)
-  - [/activity](#activity)
-  - [/aqi](#aqi)
-  - [/boredbot](#boredbot)
-  - [/changelog](#changelog)
-  - [/christmas](#christmas)
-  - [/define](#define)
-  - [/meetup](#meetup)
-  - [/mod](#mod)
-  - [/pong](#pong)
-  - [/throwdown](#throwdown)
-  - [/tldr](#tldr)
-  - [/version](#version)
+- [Command Structure](#command-structure)
+- [/bored — Public Commands](#bored--public-commands)
+  - [/bored aqi](#bored-aqi)
+  - [/bored changelog](#bored-changelog)
+  - [/bored christmas](#bored-christmas)
+  - [/bored define](#bored-define)
+  - [/bored mention](#bored-mention)
+  - [/bored pong](#bored-pong)
+  - [/bored version](#bored-version)
+  - [/bored activity (group)](#bored-activity-group)
+  - [/bored meetup (group)](#bored-meetup-group)
+  - [/bored throwdown (group)](#bored-throwdown-group)
+  - [/bored tldr (group)](#bored-tldr-group)
+- [/boredbot — Admin Commands](#boredbot--admin-commands)
+  - [/boredbot settings (group)](#boredbot-settings-group)
+  - [/boredbot activity (group)](#boredbot-activity-group)
+  - [/boredbot meetup (group)](#boredbot-meetup-group)
+  - [/boredbot mod (group)](#boredbot-mod-group)
 - [Automatic Features](#automatic-features)
   - [Onboarding](#onboarding)
   - [Multipost Detection](#multipost-detection)
@@ -71,14 +76,14 @@ Copy or create a `.env` file in the project root. All variables below are requir
 | `CHANNEL_MEETUPS` | Channel ID where meetup announcements are posted | — |
 | `CHANNEL_MEETUPS_DIR` | Channel ID for the meetups directory | — |
 | `CHANNEL_SHITPOST` | Channel ID for the shitpost channel | — |
-| `CHANNEL_THROWDOWN` | Channel ID where `/throwdown` can be used | — |
+| `CHANNEL_THROWDOWN` | Channel ID where throwdown can be used | — |
 | `ONBOARDING_CHANNEL_ID` | Channel ID for new-member onboarding | — |
 | `ONBOARDING_ROLE_ID` | Role ID granted after a user completes onboarding | — |
 | `ONBOARDING_MIN_LENGTH` | Minimum intro message length required for onboarding | `50` |
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
-| `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/activity ping everyone` | `""` |
+| `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored mention everyone` | `""` |
 
-> **Tip:** Many channel/role values can be overridden per-server at runtime via the `/boredbot settings` command without editing `.env`.
+> **Tip:** Many channel/role values can be overridden per-server at runtime via `/boredbot settings` without restarting or editing `.env`.
 
 **Example `.env`:**
 
@@ -137,38 +142,31 @@ pnpm start
 
 ---
 
-## Slash Commands
+## Command Structure
 
-All commands are registered globally (available in any server the bot is in).
+All functionality is consolidated into **two top-level slash commands**:
+
+| Command | Audience | Permission Required |
+|---|---|---|
+| `/bored` | Everyone | None |
+| `/boredbot` | Staff | Kick Members (all groups); Manage Server (settings & activity admin) |
+
+Each command uses **subcommand groups** to organize related features. This keeps the command list clean and makes permission enforcement straightforward — all admin functionality lives under `/boredbot` and is hidden from regular members.
 
 ---
 
-### /activity
+## /bored — Public Commands
 
-Manage opt-in activity subscriptions backed by Discord roles. Members can self-assign roles to stay in the loop for specific activities.
-
-| Subcommand | Options | Description |
-|---|---|---|
-| `list` | — | List all available activities |
-| `join <name>` | `name` (autocomplete) | Join an activity and receive its role |
-| `leave <name>` | `name` (autocomplete) | Leave an activity and remove its role |
-| `ping <name> <message>` | `name` (autocomplete), `message` | Ping everyone in an activity with a message |
-| `admin add <role>` | `role` | *(Bot admin channel only)* Register a Discord role as an activity |
-| `admin remove <name>` | `name` (autocomplete) | *(Bot admin channel only)* Remove an activity |
-
-> **Note:** `/activity ping everyone` and `/activity ping here` are only available in channels listed in `PING_WHITELIST_CHANNELS`. Admin subcommands are restricted to the channel set in `CHANNEL_BOT_ADMIN`.
+General-purpose commands available to all server members.
 
 ---
 
-### /aqi
+### /bored aqi
 
-Display the current Air Quality Index from Purple Air sensors across the South Bay.
+Show the current Air Quality Index from Purple Air sensors across the South Bay.
 
-| Subcommand | Options | Description |
-|---|---|---|
-| *(none)* | — | Shows AQI readings for Downtown San Jose, East San Jose, South San Jose, Santa Clara, Mountain View, and San Mateo |
+Replies with an embed showing readings for Downtown San Jose, East San Jose, South San Jose, Santa Clara, Mountain View, and San Mateo, color-coded by quality:
 
-AQI levels are color-coded:
 - 🟢 **Good** (< 50)
 - 🟡 **Sketchy** (50–99)
 - 🟠 **Bad** (100–149)
@@ -176,77 +174,81 @@ AQI levels are color-coded:
 
 ---
 
-### /boredbot
+### /bored changelog
 
-*(Requires Manage Server permission)*
+Display the 5 most recent git commit messages as a changelog embed.
 
-Manage per-server and global bot settings at runtime — no restart required. Settings are persisted in MongoDB.
-
-| Subcommand | Options | Description |
-|---|---|---|
-| `settings get <key>` | `key` (dropdown), `global` (bool) | Read the current value of a setting |
-| `settings set <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Update a setting's value |
-| `settings append <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Append a value to a comma-separated list setting |
-| `settings remove_item <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Remove a value from a comma-separated list setting |
-
-Pass `global: true` to update the setting across all servers (global scope); omit it or pass `false` to update it only for the current server.
-
-**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `SERVER_ID`, `UI_HOSTNAME`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`
+> In production the bot also posts the changelog to `CHANNEL_BOT_ADMIN` automatically on startup.
 
 ---
 
-### /changelog
+### /bored christmas
 
-Display the 5 most recent git commit messages as a changelog.
-
-| Subcommand | Options | Description |
-|---|---|---|
-| *(none)* | — | Posts an embed with the last 5 commit subjects |
-
-> In production, the bot also sends the changelog to `CHANNEL_BOT_ADMIN` automatically on startup.
+Replies with how many days are left until Christmas 🎄.
 
 ---
 
-### /christmas
+### /bored define `<word>`
 
-Find out how many days are left until Christmas 🎄.
+Look up a word on Urban Dictionary. Posts the top definition as an embed. The person who ran the command can click the **Remove** button to delete the reply within 1 hour; after that window the button disappears.
 
-| Subcommand | Options | Description |
+| Option | Required | Description |
 |---|---|---|
-| *(none)* | — | Replies with the number of days until December 25th |
+| `word` | ✅ | The word to look up |
 
 ---
 
-### /define
+### /bored mention `<name>` `<message>`
 
-Look up a word on Urban Dictionary.
+Ping an activity role with a message. Supports `everyone` and `here` in channels listed in `PING_WHITELIST_CHANNELS`.
 
-| Subcommand | Options | Description |
+| Option | Required | Description |
 |---|---|---|
-| *(none)* | `word` (required) | Posts the top definition, with a **Remove** button available for 1 hour |
-
-The person who ran the command can click **Remove** to delete the reply within 1 hour. After that window, the button disappears.
+| `name` | ✅ | Activity name (autocomplete) |
+| `message` | ✅ | Message to send with the ping |
 
 ---
 
-### /meetup
+### /bored pong
 
-Create and manage community meetups. Meetups are created in the designated meetups channel and get their own discussion thread.
+A simple health check — replies with `Ping?` to confirm the bot is alive.
+
+---
+
+### /bored version
+
+Replies with the currently running bot version from `package.json`.
+
+---
+
+### /bored activity (group)
+
+Opt-in role subscriptions. Members can self-assign Discord roles to stay in the loop for specific activities.
 
 | Subcommand | Options | Description |
 |---|---|---|
-| `create <options>` | `options` (YAML string) | Create a new meetup from YAML (use in `CHANNEL_MEETUPS`) |
-| `edit <options>` | `options` (YAML string) | Edit an existing meetup — must be used inside the meetup thread |
-| `cancel <reason>` | `reason` | Cancel a meetup — must be used inside the meetup thread |
-| `announce` | — | Ping all RSVPs in the meetup thread (organizer only) |
+| `list` | — | List all available activities |
+| `join <name>` | `name` (autocomplete) | Join an activity and receive its role |
+| `leave <name>` | `name` (autocomplete) | Leave an activity and remove its role |
+
+---
+
+### /bored meetup (group)
+
+Create and manage community meetups. Each meetup gets its own discussion thread in the meetups channel.
+
+| Subcommand | Options | Description |
+|---|---|---|
+| `create <options>` | `options` (YAML string) | Create a new meetup — must be used in `CHANNEL_MEETUPS` |
+| `edit <options>` | `options` (YAML string) | Edit an existing meetup — must be used inside its thread |
+| `cancel <reason>` | `reason` | Cancel a meetup — must be used inside its thread |
+| `announce` | — | Ping all RSVPs — must be used inside the thread (organizer only) |
 | `help` | — | Show the meetup command reference |
-| `admin refresh` | — | *(Bot admin channel only)* Refresh all live meetup announcement embeds |
 
 **Permissions:**
-- `create` — any member (in the meetups channel)
+- `create` — any member (in `CHANNEL_MEETUPS` only)
 - `edit` / `cancel` — organizer or a user with Kick Members permission
 - `announce` — organizer only
-- `admin refresh` — must be used in `CHANNEL_BOT_ADMIN`
 
 **YAML options format** (passed to `create` / `edit`):
 ```yaml
@@ -266,38 +268,9 @@ duration: 3
 
 ---
 
-### /mod
+### /bored throwdown (group)
 
-*(Requires Kick Members permission)*
-
-Moderator utilities for tracking user notes and managing multipost detection.
-
-| Subcommand | Options | Description |
-|---|---|---|
-| `log <user> <note>` | `user` (mention), `note` | Save a moderation note for a user; broadcast to `CHANNEL_BOT_LOG` |
-| `lookup <user>` | `user` (mention) | View all saved notes for a user |
-| `echo <text>` | `text` | Make the bot say something in the current channel |
-| `multipost-exempt-add <role>` | `role` | Add a role to the multipost detection exemption list |
-| `multipost-exempt-remove <role>` | `role` | Remove a role from the multipost exemption list |
-| `multipost-exempt-list` | — | List all roles currently exempt from multipost detection |
-
-> **Note:** `log` and `lookup` replies are ephemeral unless used in `CHANNEL_ADMIN`.
-
----
-
-### /pong
-
-A simple health check command.
-
-| Subcommand | Options | Description |
-|---|---|---|
-| *(none)* | — | Replies with `Ping?` to confirm the bot is running |
-
----
-
-### /throwdown
-
-Rock Paper Scissors with a persistent win streak and leaderboard. Can only be used in the channel configured as `CHANNEL_THROWDOWN`.
+Rock Paper Scissors with a persistent win streak and leaderboard. **Can only be used in `CHANNEL_THROWDOWN`.**
 
 | Subcommand | Options | Description |
 |---|---|---|
@@ -309,11 +282,11 @@ Rock Paper Scissors with a persistent win streak and leaderboard. Can only be us
 - Winning increments your current streak
 - Losing resets your streak and starts a **60-minute cooldown** before you can play again
 - Ties don't affect your streak but are recorded in your history
-- Setting a new server-wide high score pins the announcement message in the channel
+- Setting a new server-wide high score pins the announcement in the channel
 
 ---
 
-### /tldr
+### /bored tldr (group)
 
 Save and retrieve short community summaries.
 
@@ -326,13 +299,64 @@ Save and retrieve short community summaries.
 
 ---
 
-### /version
+## /boredbot — Admin Commands
 
-Display the currently running bot version (from `package.json`).
+Staff-only commands. The entire `/boredbot` command requires **Kick Members** permission by default. The `settings` and `activity` subcommand groups additionally require **Manage Server**.
+
+---
+
+### /boredbot settings (group)
+
+Manage per-server and global bot settings at runtime — no restart required. Settings are persisted in MongoDB.
 
 | Subcommand | Options | Description |
 |---|---|---|
-| *(none)* | — | Replies with the current package version |
+| `get <key>` | `key` (dropdown), `global` (bool) | Read the current value of a setting |
+| `set <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Update a setting's value |
+| `append <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Append a value to a comma-separated list setting |
+| `remove_item <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Remove a value from a comma-separated list setting |
+
+Pass `global: true` to update the setting across all servers; omit it or pass `false` to update for the current server only.
+
+**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `SERVER_ID`, `UI_HOSTNAME`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`
+
+---
+
+### /boredbot activity (group)
+
+Manage which Discord roles are registered as activities. *(Requires Manage Server)*
+
+| Subcommand | Options | Description |
+|---|---|---|
+| `add <role>` | `role` | Register a Discord role as an activity |
+| `remove <name>` | `name` (autocomplete) | Remove an activity |
+
+---
+
+### /boredbot meetup (group)
+
+Admin meetup utilities.
+
+| Subcommand | Options | Description |
+|---|---|---|
+| `refresh` | — | Refresh all live meetup announcement embeds — must be used in `CHANNEL_BOT_ADMIN` |
+
+---
+
+### /boredbot mod (group)
+
+Moderator utilities for tracking user notes and managing multipost detection.
+
+| Subcommand | Options | Description |
+|---|---|---|
+| `log <user> <note>` | `user` (mention), `note` | Save a mod note for a user; broadcast to `CHANNEL_BOT_LOG` |
+| `lookup <user>` | `user` (mention) | View all saved notes for a user |
+| `echo <text>` | `text` | Make the bot say something in the current channel |
+| `multipost-exempt-add <role>` | `role` | Add a role to the multipost detection exemption list |
+| `multipost-exempt-remove <role>` | `role` | Remove a role from the multipost exemption list |
+| `multipost-exempt-list` | — | List all roles currently exempt from multipost detection |
+
+> `log` and `lookup` replies are ephemeral unless used in `CHANNEL_ADMIN`.
 
 ---
 
@@ -350,4 +374,4 @@ Once the member posts (or edits) an introduction that meets the length requireme
 
 ### Multipost Detection
 
-The bot watches all incoming messages and detects if users are posting the same content in multiple channels in a short window. Roles added via `/mod multipost-exempt-add` are excluded from this detection.
+The bot watches all incoming messages and detects if users are posting the same content across multiple channels in a short window. Roles added via `/boredbot mod multipost-exempt-add` are excluded from this detection.

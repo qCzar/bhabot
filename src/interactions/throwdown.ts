@@ -156,66 +156,64 @@ const leaderboard = async (interaction: ChatInputCommandInteraction) : Promise<v
 
 const { commandType, optionType } = Interaction;
 
-export const throwdown = Interaction.make ({
-   config: [{
-      name: "throwdown",
-      description: "Rock Paper Scissors — build your winstreak!",
-      type: commandType.slash,
-      options: [
-         {
-            type: optionType.sub_command,
-            name: "play",
-            description: "Play a round of rock paper scissors",
-            options: [{
-               type: optionType.string,
-               name: "hand",
-               description: "Your choice",
-               required: true,
-               choices: [
-                  { name: "Rock",     value: "rock" },
-                  { name: "Paper",    value: "paper" },
-                  { name: "Scissors", value: "scissors" }
-               ]
-            }]
-         },
+export const throwdownSubcommandGroupConfig: Interaction.option = {
+   type: optionType.sub_command_group,
+   name: "throwdown",
+   description: "Rock Paper Scissors — build your winstreak!",
+   options: [
+      {
+         type: optionType.sub_command,
+         name: "play",
+         description: "Play a round of rock paper scissors",
+         options: [{
+            type: optionType.string,
+            name: "hand",
+            description: "Your choice",
+            required: true,
+            choices: [
+               { name: "Rock",     value: "rock" },
+               { name: "Paper",    value: "paper" },
+               { name: "Scissors", value: "scissors" }
+            ]
+         }]
+      },
 
-         {
-            type: optionType.sub_command,
-            name: "profile",
-            description: "View your streak profile"
-         },
+      {
+         type: optionType.sub_command,
+         name: "profile",
+         description: "View your streak profile"
+      },
 
-         {
-            type: optionType.sub_command,
-            name: "leaderboard",
-            description: "View the throwdown leaderboard"
-         }
-      ]
-   }],
-
-   handle: (interaction) => {
-      if (interaction.channelId !== getSetting(interaction.guildId, "CHANNEL_THROWDOWN")) {
-         interaction
-            .reply ({ content: "This command can only be used in the throwdown channel.", ephemeral: true })
-            .catch (interactionFailed);
-         return;
+      {
+         type: optionType.sub_command,
+         name: "leaderboard",
+         description: "View the throwdown leaderboard"
       }
+   ]
+};
 
-      switch (interaction.options.getSubcommand ()) {
-         case "play":
-            play (interaction).catch (interactionFailed);
-            break;
-
-         case "profile":
-            profile (interaction).catch (interactionFailed);
-            break;
-
-         case "leaderboard":
-            leaderboard (interaction).catch (interactionFailed);
-            break;
-
-         default:
-            throw new Error (`Unrecognized subcommand '${interaction.options.getSubcommand ()}'`);
-      }
+export const handleThrowdownSubcommand = (interaction: ChatInputCommandInteraction) => {
+   if (interaction.channelId !== getSetting(interaction.guildId, "CHANNEL_THROWDOWN")) {
+      interaction
+         .reply ({ content: "This command can only be used in the throwdown channel.", ephemeral: true })
+         .catch (interactionFailed);
+      return;
    }
-});
+
+   switch (interaction.options.getSubcommand ()) {
+      case "play":
+         play (interaction).catch (interactionFailed);
+         break;
+
+      case "profile":
+         profile (interaction).catch (interactionFailed);
+         break;
+
+      case "leaderboard":
+         leaderboard (interaction).catch (interactionFailed);
+         break;
+
+      default:
+         throw new Error (`Unrecognized subcommand '${interaction.options.getSubcommand ()}'`);
+   }
+};

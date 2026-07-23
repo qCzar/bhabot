@@ -178,150 +178,151 @@ const adminRemove = async (interaction: Discord.ChatInputCommandInteraction) => 
 };
 
 const { commandType, optionType } = Interaction;
-export const activity = Interaction.make({
-   config: [{
-      name: "activity",
-      description: "Manage activity subscriptions",
-      type: commandType.slash,
-      options: [
-         {
-            type: optionType.sub_command,
-            name: "list",
-            description: "List all available activities"
-         },
-         {
-            type: optionType.sub_command,
-            name: "join",
-            description: "Join an activity",
-            options: [{
-               type: optionType.string,
-               name: "name",
-               description: "The name of the activity to join",
-               required: true,
-               autocomplete: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "leave",
-            description: "Leave an activity",
-            options: [{
-               type: optionType.string,
-               name: "name",
-               description: "The name of the activity to leave",
-               required: true,
-               autocomplete: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "ping",
-            description: "Ping an activity role",
-            options: [
-               {
-                  type: optionType.string,
-                  name: "name",
-                  description: "The name of the activity to ping",
-                  required: true,
-                  autocomplete: true
-               },
-               {
-                  type: optionType.string,
-                  name: "message",
-                  description: "The message to send",
-                  required: true
-               }
-            ]
-         },
-         {
-            type: optionType.sub_command_group,
-            name: "admin",
-            description: "Admin commands for managing activities",
-            options: [
-               {
-                  type: optionType.sub_command,
-                  name: "add",
-                  description: "Add a role as an activity",
-                  options: [{
-                     type: optionType.role,
-                     name: "role",
-                     description: "The role to add as an activity",
-                     required: true
-                  }]
-               },
-               {
-                  type: optionType.sub_command,
-                  name: "remove",
-                  description: "Remove an activity",
-                  options: [{
-                     type: optionType.string,
-                     name: "name",
-                     description: "The name of the activity to remove",
-                     required: true,
-                     autocomplete: true
-                  }]
-               }
-            ]
-         }
-      ]
-   }],
 
-   handle: interaction => {
-      const group = interaction.options.getSubcommandGroup();
-      const subcommand = interaction.options.getSubcommand();
-
-      if (group === "admin") {
-         switch (subcommand) {
-            case "add":
-               adminAdd(interaction);
-               break;
-            case "remove":
-               adminRemove(interaction);
-               break;
-            default:
-               throw new Error(`Unrecognized admin subcommand '${subcommand}'`);
-         }
-         return;
+export const activitySubcommandGroupConfig: Interaction.option = {
+   type: optionType.sub_command_group,
+   name: "activity",
+   description: "Manage activity subscriptions",
+   options: [
+      {
+         type: optionType.sub_command,
+         name: "list",
+         description: "List all available activities"
+      },
+      {
+         type: optionType.sub_command,
+         name: "join",
+         description: "Join an activity",
+         options: [{
+            type: optionType.string,
+            name: "name",
+            description: "The name of the activity to join",
+            required: true,
+            autocomplete: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "leave",
+         description: "Leave an activity",
+         options: [{
+            type: optionType.string,
+            name: "name",
+            description: "The name of the activity to leave",
+            required: true,
+            autocomplete: true
+         }]
       }
+   ]
+};
 
-      switch (subcommand) {
-         case "list":
-            list(interaction);
-            break;
-         case "join":
-            join(interaction);
-            break;
-         case "leave":
-            leave(interaction);
-            break;
-         case "ping":
-            pingRole(interaction);
-            break;
-         default:
-            throw new Error(`Unrecognized subcommand '${subcommand}'`);
+export const mentionSubcommandConfig: Interaction.option = {
+   type: optionType.sub_command,
+   name: "mention",
+   description: "Ping/mention an activity role",
+   options: [
+      {
+         type: optionType.string,
+         name: "name",
+         description: "The name of the activity to ping",
+         required: true,
+         autocomplete: true
+      },
+      {
+         type: optionType.string,
+         name: "message",
+         description: "The message to send",
+         required: true
       }
-   },
+   ]
+};
 
-   autocomplete: async interaction => {
-      const focusedValue = interaction.options.getFocused();
-      const search = typeof focusedValue === "string" ? focusedValue.toLowerCase() : "";
-
-      const collection = await Subscription.collection();
-      const subsFromDb = await collection.find().toArray();
-
-      const subs = subsFromDb.map(sub => ({ name: sub.name, value: sub.name }));
-
-      const whitelistStr = getSetting(interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
-      const whitelist = whitelistStr.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
-      if (whitelist.includes(interaction.channelId)) {
-         subs.push({ name: "everyone", value: "everyone" });
-         subs.push({ name: "here", value: "here" });
+export const activityAdminSubcommandGroupConfig: Interaction.option = {
+   type: optionType.sub_command_group,
+   name: "activity",
+   description: "Admin commands for managing activities",
+   options: [
+      {
+         type: optionType.sub_command,
+         name: "add",
+         description: "Add a role as an activity",
+         options: [{
+            type: optionType.role,
+            name: "role",
+            description: "The role to add as an activity",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "remove",
+         description: "Remove an activity",
+         options: [{
+            type: optionType.string,
+            name: "name",
+            description: "The name of the activity to remove",
+            required: true,
+            autocomplete: true
+         }]
       }
+   ]
+};
 
-      const filtered = subs
-         .filter(sub => sub.name.toLowerCase().includes(search))
-         .slice(0, 25);
-
-      await interaction.respond(filtered);
+export const handleActivitySubcommand = (interaction: Discord.ChatInputCommandInteraction) => {
+   const subcommand = interaction.options.getSubcommand();
+   switch (subcommand) {
+      case "list":
+         list(interaction);
+         break;
+      case "join":
+         join(interaction);
+         break;
+      case "leave":
+         leave(interaction);
+         break;
+      default:
+         throw new Error(`Unrecognized activity subcommand '${subcommand}'`);
    }
-});
+};
+
+export const handleMentionSubcommand = (interaction: Discord.ChatInputCommandInteraction) => {
+   pingRole(interaction);
+};
+
+export const handleActivityAdminSubcommand = (interaction: Discord.ChatInputCommandInteraction) => {
+   const subcommand = interaction.options.getSubcommand();
+   switch (subcommand) {
+      case "add":
+         adminAdd(interaction);
+         break;
+      case "remove":
+         adminRemove(interaction);
+         break;
+      default:
+         throw new Error(`Unrecognized activity admin subcommand '${subcommand}'`);
+   }
+};
+
+export const handleActivityAutocomplete = async (interaction: Discord.AutocompleteInteraction) => {
+   const focusedValue = interaction.options.getFocused();
+   const search = typeof focusedValue === "string" ? focusedValue.toLowerCase() : "";
+
+   const collection = await Subscription.collection();
+   const subsFromDb = await collection.find().toArray();
+
+   const subs = subsFromDb.map(sub => ({ name: sub.name, value: sub.name }));
+
+   const whitelistStr = getSetting(interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
+   const whitelist = whitelistStr.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
+   if (whitelist.includes(interaction.channelId)) {
+      subs.push({ name: "everyone", value: "everyone" });
+      subs.push({ name: "here", value: "here" });
+   }
+
+   const filtered = subs
+      .filter(sub => sub.name.toLowerCase().includes(search))
+      .slice(0, 25);
+
+   await interaction.respond(filtered);
+};
+

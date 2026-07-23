@@ -30,18 +30,18 @@ const makeReply = (days: number): InteractionReplyOptions => ({
       : `ONLY ${days} ${pluralize ("DAY", days)} UNTIL CHRISTMAS!!`
 });
 
-export const christmas = Interaction.make ({
-   config: [{
-      name: "christmas",
-      description: "How many days are there left until christmas?",
-      type: Interaction.commandType.slash
-   }],
-   
-   handle: interaction => {
-      const daysUntil = daysUntilChristmas (new Date ());
+import * as Discord from "discord.js";
 
-      interaction
-         .reply (makeReply (daysUntil))
-         .catch (interactionFailed);
-   }
-});
+export const christmasSubcommandConfig: Interaction.option = {
+   type: Interaction.optionType.sub_command,
+   name: "christmas",
+   description: "How many days are there left until christmas?"
+};
+
+export const handleChristmasSubcommand = (interaction: Discord.ChatInputCommandInteraction) => {
+   const daysUntil = daysUntilChristmas (new Date ());
+
+   interaction
+      .reply (makeReply (daysUntil))
+      .catch (interactionFailed);
+};

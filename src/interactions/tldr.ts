@@ -76,43 +76,41 @@ const list = (interaction: ChatInputCommandInteraction, world: World): void => {
       .then (_ => interaction.reply (_), interactionFailed);
 };
 
-export const tldr = Interaction.make ({
-   config: [{
-      name: "tldr",
-      description: "Summarize things that happen on discord",
-      type: Interaction.commandType.slash,
-      options: [
-         {
-            type: Interaction.optionType.sub_command,
-            name: "list",
-            description: "Get a list of the most recent tldrs"
-         },
-         {
-            type: Interaction.optionType.sub_command,
-            name: "save",
-            description: "Save a new TLDR into discord history",
-            options: [{ 
-               type: Interaction.optionType.string, 
-               name: "note", 
-               description: "What do you want to save?", 
-               required: true
-            }]
-         }
-      ]
-   }],
-   
-   handle: (interaction, world) => {
-      switch (interaction.options.getSubcommand ()) {
-         case "list":
-            list (interaction, world);
-            break;
-
-         case "save":
-            save (interaction, world);
-            break;
-
-         default:
-            throw new Error (`Unrecognized sub command '${interaction.options.getSubcommand ()}'`);
+export const tldrSubcommandGroupConfig: Interaction.option = {
+   type: Interaction.optionType.sub_command_group,
+   name: "tldr",
+   description: "Summarize things that happen on discord",
+   options: [
+      {
+         type: Interaction.optionType.sub_command,
+         name: "list",
+         description: "Get a list of the most recent tldrs"
+      },
+      {
+         type: Interaction.optionType.sub_command,
+         name: "save",
+         description: "Save a new TLDR into discord history",
+         options: [{ 
+            type: Interaction.optionType.string, 
+            name: "note", 
+            description: "What do you want to save?", 
+            required: true
+         }]
       }
+   ]
+};
+
+export const handleTldrSubcommand = (interaction: ChatInputCommandInteraction, world: World) => {
+   switch (interaction.options.getSubcommand ()) {
+      case "list":
+         list (interaction, world);
+         break;
+
+      case "save":
+         save (interaction, world);
+         break;
+
+      default:
+         throw new Error (`Unrecognized sub command '${interaction.options.getSubcommand ()}'`);
    }
-});
+};

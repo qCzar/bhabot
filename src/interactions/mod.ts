@@ -174,112 +174,110 @@ const multipostExemptList = (interaction: ChatInputCommandInteraction) => {
    }).catch(interactionFailed);
 };
 
-const { commandType, permissions, optionType } = Interaction;
-export const mod = Interaction.make ({
-   config: [{
-      name: "mod",
-      description: "Commands meant to help make modding easier",
-      type: commandType.slash,
-      default_member_permissions: permissions.kick,
-      options: [
-         {
-            type: optionType.sub_command,
-            name: "log",
-            description: "Log a note about a specific user",
-            options: [{
-               type: optionType.user,
-               name: "user",
-               description: "The user this note is about",
-               required: true
-            }, {
-               type: optionType.string,
-               name: "note",
-               description: "The note you want to save for this user",
-               required: true
-            }]
-         },
+const { permissions, optionType } = Interaction;
 
-         {
-            type: optionType.sub_command,
-            name: "echo",
-            description: "Play simon says with bored bot (hey, dont abuse this!)",
-            options: [{
-               type: optionType.string,
-               name: "text",
-               description: "The text that bored bot will repeat",
-               required: true
-            }]
-         },
+export const modSubcommandGroupConfig: Interaction.option = {
+   type: optionType.sub_command_group,
+   name: "mod",
+   description: "Commands meant to help make modding easier",
+   options: [
+      {
+         type: optionType.sub_command,
+         name: "log",
+         description: "Log a note about a specific user",
+         options: [{
+            type: optionType.user,
+            name: "user",
+            description: "The user this note is about",
+            required: true
+         }, {
+            type: optionType.string,
+            name: "note",
+            description: "The note you want to save for this user",
+            required: true
+         }]
+      },
 
-         {
-            type: optionType.sub_command,
-            name: "lookup",
-            description: "Look up notes that have been saved for a user",
-            options: [{
-               type: optionType.user,
-               name: "user",
-               description: "The user to lookup",
-               required: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "multipost-exempt-add",
-            description: "Add a role that will be exempt from multipost detection",
-            options: [{
-               type: optionType.role,
-               name: "role",
-               description: "The role to exempt",
-               required: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "multipost-exempt-remove",
-            description: "Remove a role from multipost detection exemptions",
-            options: [{
-               type: optionType.role,
-               name: "role",
-               description: "The role to remove",
-               required: true
-            }]
-         },
-         {
-            type: optionType.sub_command,
-            name: "multipost-exempt-list",
-            description: "List all roles currently exempt from multipost detection"
-         }
-      ]
-   }],
+      {
+         type: optionType.sub_command,
+         name: "echo",
+         description: "Play simon says with bored bot (hey, dont abuse this!)",
+         options: [{
+            type: optionType.string,
+            name: "text",
+            description: "The text that bored bot will repeat",
+            required: true
+         }]
+      },
 
-   handle: (interaction, world) => {
-      switch (interaction.options.getSubcommand ()) {
-         case "log": 
-            logNote (interaction, world);
-            break;
-
-         case "echo":
-            echo (interaction);
-            break;   
-
-         case "lookup":
-            lookup (interaction, world);
-            break;
-
-         case "multipost-exempt-add":
-            multipostExemptAdd (interaction, world);
-            break;
-
-         case "multipost-exempt-remove":
-            multipostExemptRemove (interaction, world);
-            break;
-
-         case "multipost-exempt-list":
-            multipostExemptList (interaction);
-            break;
-
-         default:
-            throw new Error (`Unrecognized subcommand '${interaction.options.getSubcommand ()}`);
+      {
+         type: optionType.sub_command,
+         name: "lookup",
+         description: "Look up notes that have been saved for a user",
+         options: [{
+            type: optionType.user,
+            name: "user",
+            description: "The user to lookup",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "multipost-exempt-add",
+         description: "Add a role that will be exempt from multipost detection",
+         options: [{
+            type: optionType.role,
+            name: "role",
+            description: "The role to exempt",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "multipost-exempt-remove",
+         description: "Remove a role from multipost detection exemptions",
+         options: [{
+            type: optionType.role,
+            name: "role",
+            description: "The role to remove",
+            required: true
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "multipost-exempt-list",
+         description: "List all roles currently exempt from multipost detection"
       }
+   ]
+};
+
+export const handleModSubcommand = (interaction: ChatInputCommandInteraction, world: World) => {
+   switch (interaction.options.getSubcommand ()) {
+      case "log": 
+         logNote (interaction, world);
+         break;
+
+      case "echo":
+         echo (interaction);
+         break;   
+
+      case "lookup":
+         lookup (interaction, world);
+         break;
+
+      case "multipost-exempt-add":
+         multipostExemptAdd (interaction, world);
+         break;
+
+      case "multipost-exempt-remove":
+         multipostExemptRemove (interaction, world);
+         break;
+
+      case "multipost-exempt-list":
+         multipostExemptList (interaction);
+         break;
+
+      default:
+         throw new Error (`Unrecognized subcommand '${interaction.options.getSubcommand ()}`);
    }
-});
+};

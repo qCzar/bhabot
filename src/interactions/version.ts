@@ -1,15 +1,16 @@
 import { interactionFailed } from "../errors";
 import * as Interaction from "../interaction";
 
-export const version = Interaction.make ({
-   config: [{
-      name: "version",
-      description: "Get the current running version for BoredBot",
-      type: Interaction.commandType.slash
-   }],
+import * as Discord from "discord.js";
 
-   handle: interaction => 
-      interaction
-         .reply (process.env.npm_package_version ?? "Unable to fetch package version")
-         .catch (interactionFailed)
-});
+export const versionSubcommandConfig: Interaction.option = {
+   type: Interaction.optionType.sub_command,
+   name: "version",
+   description: "Get the current running version for BoredBot"
+};
+
+export const handleVersionSubcommand = (interaction: Discord.ChatInputCommandInteraction) => {
+   interaction
+      .reply (process.env.npm_package_version ?? "Unable to fetch package version")
+      .catch (interactionFailed);
+};

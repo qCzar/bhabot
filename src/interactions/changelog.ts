@@ -24,21 +24,19 @@ export const getLogEmbed = async (): Promise<D.APIEmbed> => {
    };
 };
 
-export const changelog = Interaction.make ({
-   config: [{
-      name: "changelog",
-      description: "get a list of recent bot updates",
-      type: Interaction.commandType.slash
-   }],
+export const changelogSubcommandConfig: Interaction.option = {
+   type: Interaction.optionType.sub_command,
+   name: "changelog",
+   description: "get a list of recent bot updates"
+};
 
-   handle: async (interaction) => {
-      try {
-         const embed = await getLogEmbed ();
-         interaction.reply ({ embeds: [embed] });
-      }
-      catch (e) {
-         // eslint-disable-next-line no-console
-         console.error (e);
-      }
+export const handleChangelogSubcommand = async (interaction: D.ChatInputCommandInteraction) => {
+   try {
+      const embed = await getLogEmbed ();
+      interaction.reply ({ embeds: [embed] });
    }
-});
+   catch (e) {
+      // eslint-disable-next-line no-console
+      console.error (e);
+   }
+};

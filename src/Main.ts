@@ -21,35 +21,16 @@ import * as Legacy from "./deprecating/legacy_instance";
 import * as Meetup from "./commands/meetup/RegisterMeetup";
 
 // slash commands
-import { aqi } from "./interactions/aqi";
-import { changelog, getLogEmbed } from "./interactions/changelog";
-import { christmas } from "./interactions/christmas";
-import { define } from "./interactions/define";
-import { pong } from "./interactions/pong";
+import { getLogEmbed } from "./interactions/changelog";
 import * as sanjose from "./interactions/reddit-sanjose";
-import { tldr } from "./interactions/tldr";
-import { version } from "./interactions/version";
-import { mod } from "./interactions/mod";
-import { activity } from "./interactions/activity";
-import { throwdown } from "./interactions/throwdown";
-import { meetup } from "./interactions/meetup";
+import { bored } from "./interactions/bored";
 import { boredbot } from "./interactions/boredbot";
 import { interaction } from "./interaction";
 
 const log = logger ("main");
 
 const interactions: interaction[] = [
-   aqi,
-   changelog,
-   christmas,
-   define,
-   pong,
-   tldr,
-   version,
-   mod,
-   activity,
-   throwdown,
-   meetup,
+   bored,
    boredbot
 ];
 

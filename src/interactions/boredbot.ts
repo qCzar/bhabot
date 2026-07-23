@@ -3,6 +3,9 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { interaction } from "../interaction";
 import { env, dynamicKeys, updateSetting, DynamicKey, getSetting } from "../environment";
 import { logger } from "../logger";
+import { handleActivityAdminSubcommand, handleActivityAutocomplete } from "./activity";
+import { handleModSubcommand } from "./mod";
+import { handleMeetupAdminSubcommand } from "./meetup";
 
 const log = logger("boredbot");
 
@@ -13,7 +16,9 @@ const addGlobalOption = (option: any) =>
 
 const config = new SlashCommandBuilder()
     .setName("boredbot")
-    .setDescription("BoredBot administration commands")
+    .setDescription("BoredBot administration and moderation commands")
+    .setDefaultMemberPermissions(Discord.PermissionFlagsBits.KickMembers)
+    // Subcommand Group: settings
     .addSubcommandGroup(group => group
         .setName("settings")
         .setDescription("Manage BoredBot settings")
@@ -24,8 +29,6 @@ const config = new SlashCommandBuilder()
                 option.setName("key")
                     .setDescription("The setting key")
                     .setRequired(true);
-                
-                // Add choices for all dynamic keys
                 dynamicKeys.forEach(k => option.addChoices({ name: k, value: k }));
                 return option;
             })
@@ -38,7 +41,6 @@ const config = new SlashCommandBuilder()
                 option.setName("key")
                     .setDescription("The setting key")
                     .setRequired(true);
-                
                 dynamicKeys.forEach(k => option.addChoices({ name: k, value: k }));
                 return option;
             })
@@ -56,7 +58,6 @@ const config = new SlashCommandBuilder()
                 option.setName("key")
                     .setDescription("The setting key")
                     .setRequired(true);
-                
                 dynamicKeys.forEach(k => option.addChoices({ name: k, value: k }));
                 return option;
             })
@@ -74,7 +75,6 @@ const config = new SlashCommandBuilder()
                 option.setName("key")
                     .setDescription("The setting key")
                     .setRequired(true);
-                
                 dynamicKeys.forEach(k => option.addChoices({ name: k, value: k }));
                 return option;
             })
@@ -85,6 +85,98 @@ const config = new SlashCommandBuilder()
             )
             .addBooleanOption(addGlobalOption)
         )
+    )
+    // Subcommand Group: activity
+    .addSubcommandGroup(group => group
+        .setName("activity")
+        .setDescription("Admin commands for managing activities")
+        .addSubcommand(subcommand => subcommand
+            .setName("add")
+            .setDescription("Add a role as an activity")
+            .addRoleOption(option => option
+                .setName("role")
+                .setDescription("The role to add as an activity")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("remove")
+            .setDescription("Remove an activity")
+            .addStringOption(option => option
+                .setName("name")
+                .setDescription("The name of the activity to remove")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+        )
+    )
+    // Subcommand Group: meetup
+    .addSubcommandGroup(group => group
+        .setName("meetup")
+        .setDescription("Admin meetup commands")
+        .addSubcommand(subcommand => subcommand
+            .setName("refresh")
+            .setDescription("Refresh all live meetup announcements")
+        )
+    )
+    // Subcommand Group: mod
+    .addSubcommandGroup(group => group
+        .setName("mod")
+        .setDescription("Commands meant to help make modding easier")
+        .addSubcommand(subcommand => subcommand
+            .setName("log")
+            .setDescription("Log a note about a specific user")
+            .addUserOption(option => option
+                .setName("user")
+                .setDescription("The user this note is about")
+                .setRequired(true)
+            )
+            .addStringOption(option => option
+                .setName("note")
+                .setDescription("The note you want to save for this user")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("echo")
+            .setDescription("Play simon says with bored bot (hey, dont abuse this!)")
+            .addStringOption(option => option
+                .setName("text")
+                .setDescription("The text that bored bot will repeat")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("lookup")
+            .setDescription("Look up notes that have been saved for a user")
+            .addUserOption(option => option
+                .setName("user")
+                .setDescription("The user to lookup")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("multipost-exempt-add")
+            .setDescription("Add a role that will be exempt from multipost detection")
+            .addRoleOption(option => option
+                .setName("role")
+                .setDescription("The role to exempt")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("multipost-exempt-remove")
+            .setDescription("Remove a role from multipost detection exemptions")
+            .addRoleOption(option => option
+                .setName("role")
+                .setDescription("The role to remove")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("multipost-exempt-list")
+            .setDescription("List all roles currently exempt from multipost detection")
+        )
     );
 
 export const boredbot: interaction = {
@@ -92,30 +184,29 @@ export const boredbot: interaction = {
     handle: async (interaction, world) => {
         if (interaction.commandName !== "boredbot") return;
 
-        const member = interaction.member as Discord.GuildMember;
-        if (!member?.permissions?.has(Discord.PermissionFlagsBits.ManageGuild)) {
-            await interaction.reply({ content: "You do not have permission to use this command.", ephemeral: true });
-            return;
-        }
-
-        const isGlobal = interaction.options.getBoolean("global") ?? false;
-        
-        // If they want to change global settings, check if they are in the bot admin channel or have another way to verify.
-        // For simplicity and since they have ManageGuild, we will just warn/log. But to be safe:
-        // we could check if member has some global bot admin role, or we just allow it for this specific bot's context.
-        if (isGlobal && env.CHANNEL_BOT_ADMIN) {
-            // Very simplistic check: are they in a guild that has the bot admin channel?
-            // A safer check might be validating against a specific user ID, but we don't have that configured.
-            // We'll allow it if they are ManageGuild, but log it explicitly as a global change.
-        }
-
-        const targetGuildId = isGlobal ? null : interaction.guildId;
-        const scopeName = isGlobal ? "Global" : `Server (${targetGuildId})`;
-
         const group = interaction.options.getSubcommandGroup();
         const subcommand = interaction.options.getSubcommand();
 
+        // Perform authorization based on subcommand group
+        const member = interaction.member as Discord.GuildMember;
+
+        if (group === "settings" || group === "activity") {
+            if (!member?.permissions?.has(Discord.PermissionFlagsBits.ManageGuild)) {
+                await interaction.reply({ content: "You do not have Manage Server permissions to use settings or activity admin commands.", ephemeral: true });
+                return;
+            }
+        } else {
+            // mod and meetup admin commands require KickMembers permission
+            if (!member?.permissions?.has(Discord.PermissionFlagsBits.KickMembers)) {
+                await interaction.reply({ content: "You do not have Kick Members permissions to use moderation commands.", ephemeral: true });
+                return;
+            }
+        }
+
         if (group === "settings") {
+            const isGlobal = interaction.options.getBoolean("global") ?? false;
+            const targetGuildId = isGlobal ? null : interaction.guildId;
+            const scopeName = isGlobal ? "Global" : `Server (${targetGuildId})`;
             const key = interaction.options.getString("key", true) as DynamicKey;
 
             if (subcommand === "get") {
@@ -177,6 +268,24 @@ export const boredbot: interaction = {
                     await interaction.reply({ content: `Failed to remove item from setting: ${e instanceof Error ? e.message : 'Unknown error'}`, ephemeral: true });
                 }
             }
+        }
+        else if (group === "activity") {
+            return handleActivityAdminSubcommand(interaction);
+        }
+        else if (group === "meetup") {
+            return handleMeetupAdminSubcommand(interaction);
+        }
+        else if (group === "mod") {
+            return handleModSubcommand(interaction, world);
+        }
+    },
+
+    autocomplete: async (interaction, world) => {
+        if (interaction.commandName !== "boredbot") return;
+
+        const group = interaction.options.getSubcommandGroup();
+        if (group === "activity") {
+            return handleActivityAutocomplete(interaction);
         }
     }
 };

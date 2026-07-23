@@ -90,55 +90,53 @@ const fetchDefinitions = (word: string) =>
       .query ({ term: word })
       .then (res => (<urbanDictionaryResponse>res.body).list);
 
-export const define = Interaction.make ({
-   config: [{
-      name: "define",
-      description: "Look up the definition of a word, according to the all knowing urban dictionary",
-      type: Interaction.commandType.slash,
-      options: [{
-         type: Interaction.optionType.string,
-         name: "word",
-         description: "The definition to look up",
-         required: true
-      }]
-   }],
+export const defineSubcommandConfig: Interaction.option = {
+   type: Interaction.optionType.sub_command,
+   name: "define",
+   description: "Look up the definition of a word, according to the all knowing urban dictionary",
+   options: [{
+      type: Interaction.optionType.string,
+      name: "word",
+      description: "The definition to look up",
+      required: true
+   }]
+};
 
-   handle: async interaction => {
-      const wordOption = interaction.options.getString ("word");
-      assertDefined (wordOption, "'word' is a required option");
+export const handleDefineSubcommand = async (interaction: Discord.ChatInputCommandInteraction) => {
+   const wordOption = interaction.options.getString ("word");
+   assertDefined (wordOption, "'word' is a required option");
 
-      const bestDefinition = 
-         fetchDefinitions (wordOption)
-            .then (findBestMatch);
+   const bestDefinition = 
+      fetchDefinitions (wordOption)
+         .then (findBestMatch);
 
-      try {
-         const message = await bestDefinition
-            .then (definition => makeDefinitionReply (definition, State.Active))   
-            .then (_ => interaction.reply (_));
+   try {
+      const message = await bestDefinition
+         .then (definition => makeDefinitionReply (definition, State.Active))   
+         .then (_ => interaction.reply (_));
 
-         const collector = message.createMessageComponentCollector ({
-            componentType: ComponentType.Button,
-            time: remove_timeout
-         });
+      const collector = message.createMessageComponentCollector ({
+         componentType: ComponentType.Button,
+         time: remove_timeout
+      });
 
-         collector.on ("collect", i => {
-            if (i.user.id === interaction.user.id) {
-               interaction.editReply (removedReply);
-               collector.handleDispose ();
-            }
-            else {
-               i.reply (invalidOwnerReply);
-            }
-         });
+      collector.on ("collect", i => {
+         if (i.user.id === interaction.user.id) {
+            interaction.editReply (removedReply);
+            collector.handleDispose ();
+         }
+         else {
+            i.reply (invalidOwnerReply);
+         }
+      });
 
-         collector.on ("end", _ => {
-            bestDefinition
-               .then (definition => makeDefinitionReply (definition, State.Expired))
-               .then (_ => interaction.editReply (_));
-         });
-      }
-      catch (err) {
-         interactionFailed (err instanceof Error ? err : new Error ("Unknown"));
-      }
+      collector.on ("end", _ => {
+         bestDefinition
+            .then (definition => makeDefinitionReply (definition, State.Expired))
+            .then (_ => interaction.editReply (_));
+      });
    }
-});
+   catch (err) {
+      interactionFailed (err instanceof Error ? err : new Error ("Unknown"));
+   }
+};
