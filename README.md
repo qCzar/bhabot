@@ -60,16 +60,25 @@ pnpm install
 
 Copy or create a `.env` file in the project root. All variables below are required unless a default is noted.
 
+#### Global System Variables (`.env` only)
+These variables configure application-wide infrastructure and cannot be changed per-server at runtime:
+
 | Variable | Description | Default |
 |---|---|---|
 | `DISCORD_TOKEN` | Bot token from the Discord Developer Portal | — |
 | `DISCORD_CLIENT_ID` | Application (client) ID from the Developer Portal | — |
-| `SERVER_ID` | Your Discord server (guild) ID | — |
+| `SERVER_ID` | Main Discord server (guild) ID | — |
 | `MONGO_URL` | MongoDB connection string (e.g. `mongodb://localhost:27017/sjbha`) | — |
 | `HTTP_PORT` | Port for the internal Hapi HTTP server | — |
 | `HAPI_HOST` | Hostname for the Hapi server | — |
 | `UI_HOSTNAME` | Public URL for any linked web UIs | — |
 | `NODE_ENV` | `development` or `production` | `development` |
+
+#### Per-Server Configurable Settings (`.env` or `/boredbot settings`)
+These variables can have initial defaults set in `.env` and can be overridden dynamically per-server using Discord slash commands:
+
+| Variable | Description | Default |
+|---|---|---|
 | `CHANNEL_ADMIN` | Channel ID for server admin commands | — |
 | `CHANNEL_BOT_ADMIN` | Channel ID for bot admin commands | — |
 | `CHANNEL_BOT_LOG` | Channel ID where bot logs/notes are broadcast | — |
@@ -83,7 +92,7 @@ Copy or create a `.env` file in the project root. All variables below are requir
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
 | `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored mention everyone` | `""` |
 
-> **Tip:** Many channel/role values can be overridden per-server at runtime via `/boredbot settings` without restarting or editing `.env`.
+> **Tip:** Per-server configurable settings can be updated dynamically per-server in Discord using `/boredbot settings set key:<KEY> value:<VALUE>` without restarting the bot.
 
 **Example `.env`:**
 
@@ -307,7 +316,19 @@ Staff-only commands. The entire `/boredbot` command requires **Kick Members** pe
 
 ### /boredbot settings (group)
 
-Manage per-server and global bot settings at runtime — no restart required. Settings are persisted in MongoDB.
+Manage per-server and global bot settings at runtime — no restart required. 
+
+#### How Settings Are Saved & Resolved
+1. **Persistence (MongoDB)**: All settings configured via slash commands are persisted in the `settings` collection in MongoDB (with the schema `{ key, guildId, value }`). 
+2. **Caching & Lifecycle**:
+   - On startup, the bot loads all settings from MongoDB into an in-memory cache (`guildSettings`).
+   - If a setting is missing from MongoDB on startup, the bot backfills the database with the value defined in the `.env` file (acting as the initial global default).
+3. **Multi-Server Resolution Scope**:
+   - **Global Scope (`global: true`)**: Updates the setting globally. This is stored in MongoDB with a `guildId: null` and overrides the base `.env` value.
+   - **Server Scope (`global: false` or omitted)**: Scopes the setting specifically to the server (guild) where the command is executed.
+   - When retrieving a setting via `getSetting(guildId, key)`:
+     1. It first checks for a server-specific setting override (`guildSettings[guildId][key]`).
+     2. If not defined, it falls back to the global environment value (`env[key]`).
 
 | Subcommand | Options | Description |
 |---|---|---|
@@ -316,9 +337,37 @@ Manage per-server and global bot settings at runtime — no restart required. Se
 | `append <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Append a value to a comma-separated list setting |
 | `remove_item <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Remove a value from a comma-separated list setting |
 
-Pass `global: true` to update the setting across all servers; omit it or pass `false` to update for the current server only.
+#### Examples: How to Set Variables via Slash Commands
 
-**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `SERVER_ID`, `UI_HOSTNAME`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`
+To set or update any of these variables in Discord, an admin with **Manage Server** permissions runs the `/boredbot settings` commands:
+
+1. **Set a server-specific channel or role ID:**
+   ```
+   /boredbot settings set key:CHANNEL_MEETUPS value:123456789012345678
+   ```
+   *(This configures `CHANNEL_MEETUPS` for the server where the command is typed.)*
+
+2. **Set a setting globally across all servers (overriding global fallback):**
+   ```
+   /boredbot settings set key:ONBOARDING_MIN_LENGTH value:100 global:true
+   ```
+
+3. **Check the current setting for a server:**
+   ```
+   /boredbot settings get key:ONBOARDING_ROLE_ID
+   ```
+
+4. **Add a channel ID to a list setting (e.g. ping whitelist):**
+   ```
+   /boredbot settings append key:PING_WHITELIST_CHANNELS value:987654321098765432
+   ```
+
+5. **Remove a channel ID from a list setting:**
+   ```
+   /boredbot settings remove_item key:PING_WHITELIST_CHANNELS value:987654321098765432
+   ```
+
+**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`
 
 ---
 
