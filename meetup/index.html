@@ -1,1 +1,203 @@
-<meta name="viewport" content="minimum-scale=1,initial-scale=1,width=device-width"/><html lang="en"><head><title>BoredBot</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><script defer="defer" src="../323.bundle.js"></script><script defer="defer" src="../meetup.bundle.js"></script></head><body><div id="root"></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBHA Meetup Creator</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- JS YAML Serializer CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header -->
+    <header class="header">
+      <h1 id="mainHeaderTitle">Create Your Meetup</h1>
+      <p>Configure event parameters and generate a command for your Discord channel.</p>
+      <div class="badge-mode" id="modeBadge">Mode: New Meetup</div>
+    </header>
+
+    <form id="meetupForm" onsubmit="return false;">
+
+      <!-- Section 1: Core Details -->
+      <section class="card-section">
+        <h2 class="section-title">
+          <i class="material-icons">event_note</i>
+          Event Details
+        </h2>
+
+        <!-- Title -->
+        <div class="form-group">
+          <label for="title">Meetup Title <span style="color: var(--primary)">*</span></label>
+          <input type="text" id="title" placeholder="e.g. Board Game Night @ Hapas Brewing" required />
+        </div>
+
+        <!-- Date & Time + Duration -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="date">Starts At <span style="color: var(--primary)">*</span></label>
+            <input type="datetime-local" id="date" required />
+          </div>
+
+          <div class="form-group">
+            <label for="duration">Duration <span class="hint">(minutes)</span></label>
+            <div class="preset-buttons">
+              <button type="button" class="preset-btn" data-mins="30">30m</button>
+              <button type="button" class="preset-btn" data-mins="60">1h</button>
+              <button type="button" class="preset-btn" data-mins="120">2h</button>
+              <button type="button" class="preset-btn" data-mins="180">3h</button>
+            </div>
+            <input type="number" id="duration" min="5" placeholder="e.g. 120" />
+          </div>
+        </div>
+
+        <!-- Category Selector -->
+        <div class="form-group">
+          <label>Category</label>
+          <div class="category-chips" id="categoryChips">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label for="description">Description <span class="hint">(optional)</span></label>
+          <textarea id="description" placeholder="Let people know what this meetup is all about! What to bring, what to expect..."></textarea>
+          <div class="char-counter" id="descCharCount">0 / 1000 characters</div>
+        </div>
+      </section>
+
+      <!-- Section 2: Capacity & RSVP Rules -->
+      <section class="card-section">
+        <h2 class="section-title">
+          <i class="material-icons">groups</i>
+          RSVP & Capacity Settings
+        </h2>
+
+        <div class="form-row">
+          <!-- Max Capacity -->
+          <div class="form-group">
+            <label for="maxRsvp">Max Attendees Limit <span class="hint">(optional)</span></label>
+            <input type="number" id="maxRsvp" min="1" placeholder="e.g. 10" />
+          </div>
+
+          <!-- RSVP Deadline -->
+          <div class="form-group">
+            <label for="rsvpDeadline">RSVP Cutoff Deadline <span class="hint">(optional)</span></label>
+            <input type="datetime-local" id="rsvpDeadline" />
+          </div>
+        </div>
+
+        <!-- Subscription / Role Tag -->
+        <div class="form-group">
+          <label for="subscription">Subscription / Tag <span class="hint">(optional channel/role ID or topic)</span></label>
+          <input type="text" id="subscription" placeholder="e.g. board-games or @Events" />
+        </div>
+      </section>
+
+      <!-- Section 3: Location -->
+      <section class="card-section">
+        <h2 class="section-title">
+          <i class="material-icons">place</i>
+          Location Details
+        </h2>
+
+        <div class="form-group">
+          <label for="location">Location Name or Address</label>
+          <input type="text" id="location" placeholder="e.g. 1234 San Carlos St, Hapas Brewing, or Voice Channel" />
+        </div>
+
+        <div class="form-group">
+          <label for="locationComments">Location Instructions / Comments <span class="hint">(optional)</span></label>
+          <textarea id="locationComments" style="min-height: 70px;" placeholder="e.g. Meet in the back patio area near the food trucks."></textarea>
+          <div class="char-counter" id="locCommentsCharCount">0 / 300 characters</div>
+        </div>
+
+        <div class="form-group">
+          <div class="toggle-group">
+            <label for="locationLinked" class="toggle-label">
+              <i class="material-icons" style="color: var(--accent);">map</i>
+              Make location clickable to Google Maps
+            </label>
+            <input type="checkbox" id="locationLinked" checked />
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: External Links -->
+      <section class="card-section">
+        <h2 class="section-title">
+          <i class="material-icons">link</i>
+          External Links
+        </h2>
+
+        <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Provide links to food menus, trail maps, tickets, or relevant resources.
+        </p>
+
+        <div id="linksList">
+          <!-- Dynamic link rows inserted here -->
+        </div>
+
+        <button type="button" class="btn-add-link" id="addLinkBtn">
+          <i class="material-icons">add</i>
+          Add Another Link
+        </button>
+      </section>
+
+    </form>
+
+    <!-- Floating Action Bar -->
+    <div class="action-bar">
+      <button type="button" class="btn-primary" id="generateBtn">
+        <i class="material-icons">code</i>
+        Generate Command
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Command Preview Output Modal -->
+  <div class="output-modal" id="outputModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Your Discord Command</h2>
+        <button type="button" class="btn-icon" id="closeModalBtn">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Copy & paste this exact command into any channel on your Discord server:
+      </p>
+
+      <pre class="command-preview" id="commandPreview"></pre>
+
+      <button type="button" class="btn-primary" id="copyBtn">
+        <i class="material-icons">content_copy</i>
+        Copy to Clipboard
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="copy-toast" id="copyToast">
+    <i class="material-icons">check_circle</i>
+    Copied to Clipboard!
+  </div>
+
+  <!-- App Script -->
+  <script src="../app.js"></script>
+</body>
+</html>
