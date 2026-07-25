@@ -259,36 +259,7 @@ textarea {
   font-weight: 700;
 }
 
-/* Duration Quick Presets */
-.preset-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
 
-.preset-btn {
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--radius-sm);
-  background: var(--chip-bg);
-  border: 1px solid var(--chip-border);
-  color: var(--chip-text);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.preset-btn:hover {
-  border-color: var(--text-muted);
-  color: var(--text-main);
-}
-
-.preset-btn.active {
-  background: var(--chip-active-bg);
-  border-color: var(--chip-active-border);
-  color: var(--chip-active-text);
-}
 
 /* Toggle Switch */
 .toggle-group {

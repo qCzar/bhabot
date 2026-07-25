@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const dateInput = document.getElementById('date');
   const durationInput = document.getElementById('duration');
   const categoryChipsContainer = document.getElementById('categoryChips');
-  const presetButtons = document.querySelectorAll('.preset-btn');
   const descriptionInput = document.getElementById('description');
   const descCharCount = document.getElementById('descCharCount');
   
@@ -159,27 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Preset Duration Handler
-  presetButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      presetButtons.forEach(b => b.classList.remove('active'));
-      const mins = btn.getAttribute('data-mins');
-      durationInput.value = mins;
-      btn.classList.add('active');
-      updateLivePreview();
-    });
-  });
-
-  durationInput.addEventListener('input', () => {
-    presetButtons.forEach(b => b.classList.remove('active'));
-    const val = durationInput.value;
-    presetButtons.forEach(b => {
-      if (b.getAttribute('data-mins') === val) {
-        b.classList.add('active');
-      }
-    });
-    updateLivePreview();
-  });
+  durationInput.addEventListener('input', updateLivePreview);
 
   // Default Date Time (Now + 2 hours rounded to next hour)
   function getDefaultDateTime() {
