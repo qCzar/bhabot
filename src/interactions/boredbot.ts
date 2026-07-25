@@ -103,7 +103,7 @@ const config = new SlashCommandBuilder()
             .setName("remove")
             .setDescription("Remove an activity")
             .addStringOption(option => option
-                .setName("name")
+                .setName("role")
                 .setDescription("The name of the activity to remove")
                 .setRequired(true)
                 .setAutocomplete(true)

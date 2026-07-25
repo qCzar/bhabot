@@ -91,6 +91,8 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 | `ONBOARDING_MIN_LENGTH` | Minimum intro message length required for onboarding | `50` |
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
 | `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored mention everyone` | `""` |
+| `COOLDOWN_USER_PING` | Per-user cooldown duration in seconds for mentioning roles | `60` |
+| `COOLDOWN_ROLE_PING` | Per-role cooldown duration in seconds before a role can be mentioned again | `7200` |
 
 > **Tip:** Per-server configurable settings can be updated dynamically per-server in Discord using `/boredbot settings set key:<KEY> value:<VALUE>` without restarting the bot.
 
@@ -206,14 +208,16 @@ Look up a word on Urban Dictionary. Posts the top definition as an embed. The pe
 
 ---
 
-### /bored mention `<name>` `<message>`
+### /bored mention `<role>` `<message>`
 
 Ping an activity role with a message. Supports `everyone` and `here` in channels listed in `PING_WHITELIST_CHANNELS`.
 
 | Option | Required | Description |
 |---|---|---|
-| `name` | ✅ | Activity name (autocomplete) |
+| `role` | ✅ | Activity role name (autocomplete) |
 | `message` | ✅ | Message to send with the ping |
+
+> **Note:** Non-admin users are subject to a per-user cooldown (`COOLDOWN_USER_PING`, default 60s) and a per-role cooldown (`COOLDOWN_ROLE_PING`, default 2 hours) before the same role can be pinged again. Users with Manage Server or Kick Members permissions bypass these cooldowns.
 
 ---
 
@@ -236,8 +240,8 @@ Opt-in role subscriptions. Members can self-assign Discord roles to stay in the 
 | Subcommand | Options | Description |
 |---|---|---|
 | `list` | — | List all available activities |
-| `join <name>` | `name` (autocomplete) | Join an activity and receive its role |
-| `leave <name>` | `name` (autocomplete) | Leave an activity and remove its role |
+| `join <role>` | `role` (autocomplete) | Join an activity and receive its role |
+| `leave <role>` | `role` (autocomplete) | Leave an activity and remove its role |
 
 ---
 
@@ -366,7 +370,7 @@ To set or update any of these variables in Discord, an admin with **Manage Serve
    /boredbot settings remove_item key:PING_WHITELIST_CHANNELS value:987654321098765432
    ```
 
-**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`
+**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`, `COOLDOWN_USER_PING`, `COOLDOWN_ROLE_PING`
 
 ---
 
@@ -377,7 +381,7 @@ Manage which Discord roles are registered as activities. *(Requires Manage Serve
 | Subcommand | Options | Description |
 |---|---|---|
 | `add <role>` | `role` | Register a Discord role as an activity |
-| `remove <name>` | `name` (autocomplete) | Remove an activity |
+| `remove <role>` | `role` (autocomplete) | Remove an activity |
 
 ---
 

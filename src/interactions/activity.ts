@@ -17,7 +17,7 @@ const list = async (interaction: Discord.ChatInputCommandInteraction) => {
 };
 
 const join = async (interaction: Discord.ChatInputCommandInteraction) => {
-   const name = interaction.options.getString("name");
+   const name = interaction.options.getString("role");
 
    if (!name)
       return interaction.reply({ content: "You must provide an activity name", ephemeral: true });
@@ -47,7 +47,7 @@ const join = async (interaction: Discord.ChatInputCommandInteraction) => {
 };
 
 const leave = async (interaction: Discord.ChatInputCommandInteraction) => {
-   const name = interaction.options.getString("name");
+   const name = interaction.options.getString("role");
 
    if (!name)
       return interaction.reply({ content: "You must provide an activity name", ephemeral: true });
@@ -76,14 +76,38 @@ const leave = async (interaction: Discord.ChatInputCommandInteraction) => {
       .catch(interactionFailed);
 };
 
+const userPingCooldowns = new Map<string, number>();
+const rolePingCooldowns = new Map<string, number>();
+
 const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
-   const name = interaction.options.getString("name");
+   const name = interaction.options.getString("role");
    const message = interaction.options.getString("message");
 
    if (!name || !message)
       return interaction.reply({ content: "You must provide an activity name and a message", ephemeral: true });
 
+   const member = interaction.member as Discord.GuildMember;
+   const isAdmin = member?.permissions?.has(Discord.PermissionFlagsBits.ManageGuild) || member?.permissions?.has(Discord.PermissionFlagsBits.KickMembers);
+
    const lowerName = name.toLowerCase();
+   const now = Date.now();
+
+   if (!isAdmin) {
+      const userCooldownDuration = getSetting(interaction.guildId, "COOLDOWN_USER_PING") * 1000;
+      const lastUserPing = userPingCooldowns.get(member.id) || 0;
+      if (now - lastUserPing < userCooldownDuration) {
+         const remaining = Math.ceil((userCooldownDuration - (now - lastUserPing)) / 1000);
+         return interaction.reply({ content: `You are on cooldown. Please wait ${remaining} seconds before pinging again.`, ephemeral: true }).catch(interactionFailed);
+      }
+
+      const roleCooldownDuration = getSetting(interaction.guildId, "COOLDOWN_ROLE_PING") * 1000;
+      const lastRolePing = rolePingCooldowns.get(lowerName) || 0;
+      if (now - lastRolePing < roleCooldownDuration) {
+         const remaining = Math.ceil((roleCooldownDuration - (now - lastRolePing)) / 1000 / 60);
+         return interaction.reply({ content: `This role is on cooldown. Please wait ${remaining} minutes before it can be pinged again.`, ephemeral: true }).catch(interactionFailed);
+      }
+   }
+
    const isSpecial = lowerName === "everyone" || lowerName === "here";
 
    if (isSpecial) {
@@ -94,6 +118,9 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
             .reply({ content: `You can only ping @${lowerName} in whitelisted channels.`, ephemeral: true })
             .catch(interactionFailed);
       }
+
+      userPingCooldowns.set(member.id, now);
+      rolePingCooldowns.set(lowerName, now);
 
       return interaction
          .reply({
@@ -110,6 +137,9 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
       return interaction
          .reply({ content: `No activity named '${name}' found. Use '/activity list' to view available activities`, ephemeral: true })
          .catch(interactionFailed);
+
+   userPingCooldowns.set(member.id, now);
+   rolePingCooldowns.set(lowerName, now);
 
    interaction
       .reply({
@@ -156,7 +186,7 @@ const adminRemove = async (interaction: Discord.ChatInputCommandInteraction) => 
          .reply({ content: "This command can only be used in the admin channel", ephemeral: true })
          .catch(interactionFailed);
 
-   const name = interaction.options.getString("name");
+   const name = interaction.options.getString("role");
 
    if (!name)
       return interaction
@@ -195,7 +225,7 @@ export const activitySubcommandGroupConfig: Interaction.option = {
          description: "Join an activity",
          options: [{
             type: optionType.string,
-            name: "name",
+            name: "role",
             description: "The name of the activity to join",
             required: true,
             autocomplete: true
@@ -207,7 +237,7 @@ export const activitySubcommandGroupConfig: Interaction.option = {
          description: "Leave an activity",
          options: [{
             type: optionType.string,
-            name: "name",
+            name: "role",
             description: "The name of the activity to leave",
             required: true,
             autocomplete: true
@@ -223,7 +253,7 @@ export const mentionSubcommandConfig: Interaction.option = {
    options: [
       {
          type: optionType.string,
-         name: "name",
+         name: "role",
          description: "The name of the activity to ping",
          required: true,
          autocomplete: true
@@ -259,7 +289,7 @@ export const activityAdminSubcommandGroupConfig: Interaction.option = {
          description: "Remove an activity",
          options: [{
             type: optionType.string,
-            name: "name",
+            name: "role",
             description: "The name of the activity to remove",
             required: true,
             autocomplete: true
