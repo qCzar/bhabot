@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Subscription / Role Elements
   const roleSelect = document.getElementById('roleSelect');
-  const customRoleInput = document.getElementById('customRoleInput');
+  const roleLoadingStatus = document.getElementById('roleLoadingStatus');
   const serverBadge = document.getElementById('serverBadge');
   const serverBadgeText = document.getElementById('serverBadgeText');
   
@@ -51,66 +51,92 @@ document.addEventListener('DOMContentLoaded', () => {
     { label: 'pet', emoji: '🐕' }
   ];
 
-  // Default Activity Roles
-  const defaultRoles = [
-    'Events',
-    'BoardGames',
-    'Gaming',
-    'Fitness',
-    'Outdoors',
-    'Food',
-    'Drinks',
-    'Concert',
-    'Volunteering'
-  ];
-
   let selectedCategory = 'default';
   let links = [];
   let isEditMode = false;
   let meetupId = null;
+  let serverActivities = [];
 
-  // Render Role Dropdown based on URL Server Parameters or Defaults
-  function initRoleSelection() {
+  // Fetch registered server activity roles from Database based on Server ID parameter
+  function initServerRoleSelection() {
     const urlParams = new URLSearchParams(window.location.search);
-    const serverParam = urlParams.get('server') || urlParams.get('guild') || urlParams.get('guild_id');
+    const serverId = urlParams.get('server') || urlParams.get('guild') || urlParams.get('guild_id');
     const rolesParam = urlParams.get('roles');
 
-    if (serverParam) {
-      serverBadgeText.textContent = `Server: ${serverParam}`;
+    if (serverId) {
+      serverBadgeText.textContent = `Server: ${serverId}`;
       serverBadge.style.display = 'inline-flex';
     }
 
-    let availableRoles = [...defaultRoles];
+    roleSelect.innerHTML = '<option value="">-- No Role Mention --</option>';
+
+    // Parse inline query parameters if present (e.g. ?roles=BoardGames:102030,Fitness:405060 or ?roles=BoardGames,Fitness)
     if (rolesParam) {
-      // Split by comma or pipe
-      const customParamRoles = rolesParam.split(/[,|]/).map(r => r.trim()).filter(Boolean);
-      if (customParamRoles.length > 0) {
-        availableRoles = customParamRoles;
+      const parsedRoles = rolesParam.split(/[,|]/).map(item => {
+        const parts = item.split(':');
+        return {
+          name: parts[0].trim(),
+          id: parts[1] ? parts[1].trim() : parts[0].trim()
+        };
+      }).filter(r => r.name.length > 0);
+
+      if (parsedRoles.length > 0) {
+        populateRoleDropdown(parsedRoles);
+        roleLoadingStatus.textContent = 'Roles loaded from URL parameters';
+        return;
       }
     }
 
-    // Populate roleSelect
+    if (!serverId) {
+      roleLoadingStatus.textContent = 'Pass ?server=<guild_id> in the URL to automatically load your server\'s activity roles.';
+      return;
+    }
+
+    // Query Database API endpoint for registered activity roles for this server
+    roleLoadingStatus.textContent = `Loading registered activity roles for server ${serverId}...`;
+
+    fetch(`https://comicidiot.com/api/activities?server=${encodeURIComponent(serverId)}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          serverActivities = data;
+          populateRoleDropdown(serverActivities);
+          roleLoadingStatus.textContent = `${data.length} registered activity role(s) loaded.`;
+        } else {
+          roleLoadingStatus.textContent = 'No registered activity roles found for this server. Add roles using "/boredbot activity add"';
+        }
+      })
+      .catch(err => {
+        console.warn('Could not fetch activity roles from database API:', err);
+        // Secondary fallback check if API route is at /activities
+        fetch(`https://comicidiot.com/activities?server=${encodeURIComponent(serverId)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              serverActivities = data;
+              populateRoleDropdown(serverActivities);
+              roleLoadingStatus.textContent = `${data.length} registered activity role(s) loaded.`;
+            } else {
+              roleLoadingStatus.textContent = 'No registered activity roles found for this server.';
+            }
+          })
+          .catch(() => {
+            roleLoadingStatus.textContent = 'Could not connect to database API to load server activity roles.';
+          });
+      });
+  }
+
+  function populateRoleDropdown(roleList) {
     roleSelect.innerHTML = '<option value="">-- No Role Mention --</option>';
-    availableRoles.forEach(role => {
+    roleList.forEach(role => {
       const opt = document.createElement('option');
-      opt.value = role;
-      opt.textContent = `@${role}`;
+      opt.value = role.name;
+      opt.setAttribute('data-id', role.id || role.name);
+      opt.textContent = `@${role.name}${role.id && role.id !== role.name ? ` (${role.id})` : ''}`;
       roleSelect.appendChild(opt);
-    });
-
-    // Custom option
-    const customOpt = document.createElement('option');
-    customOpt.value = '__CUSTOM__';
-    customOpt.textContent = '✏️ Custom Role...';
-    roleSelect.appendChild(customOpt);
-
-    roleSelect.addEventListener('change', () => {
-      if (roleSelect.value === '__CUSTOM__') {
-        customRoleInput.style.display = 'block';
-        customRoleInput.focus();
-      } else {
-        customRoleInput.style.display = 'none';
-      }
     });
   }
 
@@ -267,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (data.subscription) {
-          // Check if existing subscription role exists in select
+          // If subscription role is not currently in dropdown, add it
           let matched = false;
           for (let opt of roleSelect.options) {
             if (opt.value === data.subscription) {
@@ -277,9 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
           if (!matched) {
-            roleSelect.value = '__CUSTOM__';
-            customRoleInput.style.display = 'block';
-            customRoleInput.value = data.subscription;
+            const opt = document.createElement('option');
+            opt.value = data.subscription;
+            opt.textContent = `@${data.subscription}`;
+            roleSelect.appendChild(opt);
+            roleSelect.value = data.subscription;
           }
         }
 
@@ -308,14 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dateTimeLocalVal) return null;
     const d = new Date(dateTimeLocalVal);
     return d.toISOString();
-  }
-
-  // Get selected subscription role name
-  function getSelectedSubscriptionRole() {
-    if (roleSelect.value === '__CUSTOM__') {
-      return customRoleInput.value.trim();
-    }
-    return roleSelect.value.trim();
   }
 
   // Build YAML payload string
@@ -354,9 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
       meetupObj.rsvpDeadline = toISOStringWithTZ(rsvpDeadlineInput.value);
     }
 
-    const subRole = getSelectedSubscriptionRole();
-    if (subRole) {
-      meetupObj.subscription = subRole;
+    if (roleSelect.value) {
+      meetupObj.subscription = roleSelect.value;
     }
 
     if (descriptionInput.value.trim()) {
@@ -423,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Init
-  initRoleSelection();
+  initServerRoleSelection();
   renderCategoryChips();
   checkHashEditMode();
 });

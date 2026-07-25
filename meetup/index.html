@@ -29,7 +29,7 @@
         <div class="badge-mode" id="modeBadge">Mode: New Meetup</div>
         <div class="badge-mode" id="serverBadge" style="display: none; background: var(--accent-light); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
           <i class="material-icons" style="font-size: 0.9rem;">dns</i>
-          <span id="serverBadgeText">Server: Default</span>
+          <span id="serverBadgeText">Server ID: --</span>
         </div>
       </div>
     </header>
@@ -107,12 +107,12 @@
 
         <!-- Subscription / Role Selector -->
         <div class="form-group">
-          <label for="roleSelect">Subscription Role <span class="hint">(optional Discord role to ping)</span></label>
-          <select id="roleSelect" style="margin-bottom: 0.5rem;">
+          <label for="roleSelect">Subscription Role <span class="hint">(registered server activity roles)</span></label>
+          <select id="roleSelect">
             <option value="">-- No Role Mention --</option>
-            <!-- Dynamically populated or encoded from referring server -->
+            <!-- Dynamically populated from database for referring server -->
           </select>
-          <input type="text" id="customRoleInput" placeholder="Enter custom role name (e.g. BoardGames)" style="display: none;" />
+          <div id="roleLoadingStatus" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;"></div>
         </div>
       </section>
 
