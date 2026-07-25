@@ -166,13 +166,34 @@
         </button>
       </section>
 
+      <!-- Section 5: Real-Time Generated Command Preview Card -->
+      <section class="card-section" id="commandOutputCard">
+        <h2 class="section-title">
+          <i class="material-icons">terminal</i>
+          Generated Discord Command
+        </h2>
+        <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Copy and paste this exact command block into your Discord channel:
+        </p>
+        <pre class="command-preview" id="pageCommandPreview">!meetup create
+title: Board Game Night
+date: '2026-07-25T16:00:00.000Z'</pre>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+          <button type="button" class="btn-primary" id="pageCopyBtn">
+            <i class="material-icons">content_copy</i>
+            Copy Command to Clipboard
+          </button>
+        </div>
+      </section>
+
     </form>
 
     <!-- Floating Action Bar -->
     <div class="action-bar">
       <button type="button" class="btn-primary" id="generateBtn">
         <i class="material-icons">code</i>
-        Generate Command
+        Generate & Copy Command
       </button>
     </div>
 

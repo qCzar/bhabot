@@ -31,10 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const outputModal = document.getElementById('outputModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const commandPreview = document.getElementById('commandPreview');
+  const pageCommandPreview = document.getElementById('pageCommandPreview');
+  const pageCopyBtn = document.getElementById('pageCopyBtn');
   const copyBtn = document.getElementById('copyBtn');
   const copyToast = document.getElementById('copyToast');
   const modeBadge = document.getElementById('modeBadge');
   const mainHeaderTitle = document.getElementById('mainHeaderTitle');
+  const commandOutputCard = document.getElementById('commandOutputCard');
 
   // Categories config
   const categories = [
@@ -111,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(err => {
         console.warn('Could not fetch activity roles from database API:', err);
-        // Secondary fallback check if API route is at /activities
         fetch(`https://comicidiot.com/activities?server=${encodeURIComponent(serverId)}`)
           .then(r => r.json())
           .then(data => {
@@ -138,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.textContent = `@${role.name}${role.id && role.id !== role.name ? ` (${role.id})` : ''}`;
       roleSelect.appendChild(opt);
     });
+    updateLivePreview();
   }
 
   // Initialize Category Chips
@@ -150,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chip.addEventListener('click', () => {
         selectedCategory = cat.label;
         renderCategoryChips();
+        updateLivePreview();
       });
       categoryChipsContainer.appendChild(chip);
     });
@@ -162,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const mins = btn.getAttribute('data-mins');
       durationInput.value = mins;
       btn.classList.add('active');
+      updateLivePreview();
     });
   });
 
@@ -173,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         b.classList.add('active');
       }
     });
+    updateLivePreview();
   });
 
   // Default Date Time (Now + 2 hours rounded to next hour)
@@ -197,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       descCharCount.className = 'char-counter';
     }
+    updateLivePreview();
   });
 
   locationCommentsInput.addEventListener('input', () => {
@@ -209,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       locCommentsCharCount.className = 'char-counter';
     }
+    updateLivePreview();
   });
 
   // Dynamic Link Rows
@@ -232,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = parseInt(e.target.getAttribute('data-idx'));
         const field = e.target.getAttribute('data-field');
         links[idx][field] = e.target.value;
+        updateLivePreview();
       });
     });
 
@@ -240,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = parseInt(btn.getAttribute('data-remove'));
         links.splice(idx, 1);
         renderLinks();
+        updateLivePreview();
       });
     });
   }
@@ -251,6 +261,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function escapeHtml(str) {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Native YAML Serializer (100% offline, zero-crash)
+  function objectToYAML(obj) {
+    let lines = [];
+    for (const [key, val] of Object.entries(obj)) {
+      if (val === undefined || val === null || val === '') continue;
+      if (typeof val === 'boolean' || typeof val === 'number') {
+        lines.push(`${key}: ${val}`);
+      } else if (typeof val === 'string') {
+        if (val.includes('\n')) {
+          const indented = val.split('\n').map(l => '  ' + l).join('\n');
+          lines.push(`${key}: |\n${indented}`);
+        } else if (val.includes(':') || val.includes('#') || val.includes('\'') || val.includes('"')) {
+          lines.push(`${key}: "${val.replace(/"/g, '\\"')}"`);
+        } else {
+          lines.push(`${key}: ${val}`);
+        }
+      } else if (Array.isArray(val)) {
+        lines.push(`${key}:`);
+        val.forEach(item => {
+          if (typeof item === 'object') {
+            const itemEntries = Object.entries(item);
+            itemEntries.forEach(([ik, iv], idx) => {
+              if (idx === 0) {
+                lines.push(`  - ${ik}: "${iv}"`);
+              } else {
+                lines.push(`    ${ik}: "${iv}"`);
+              }
+            });
+          } else {
+            lines.push(`  - ${item}`);
+          }
+        });
+      }
+    }
+    return lines.join('\n');
   }
 
   // Load Edit Data from Hash if present
@@ -274,8 +321,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (data.timestamp) {
           const dt = new Date(data.timestamp);
-          const tzOffset = dt.getTimezoneOffset() * 60000;
-          dateInput.value = (new Date(dt.getTime() - tzOffset)).toISOString().slice(0, 16);
+          if (!isNaN(dt.getTime())) {
+            const tzOffset = dt.getTimezoneOffset() * 60000;
+            dateInput.value = (new Date(dt.getTime() - tzOffset)).toISOString().slice(0, 16);
+          }
         }
         if (data.category) {
           selectedCategory = data.category;
@@ -288,12 +337,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.maxRsvp) maxRsvpInput.value = data.maxRsvp;
         if (data.rsvpDeadline) {
           const dt = new Date(data.rsvpDeadline);
-          const tzOffset = dt.getTimezoneOffset() * 60000;
-          rsvpDeadlineInput.value = (new Date(dt.getTime() - tzOffset)).toISOString().slice(0, 16);
+          if (!isNaN(dt.getTime())) {
+            const tzOffset = dt.getTimezoneOffset() * 60000;
+            rsvpDeadlineInput.value = (new Date(dt.getTime() - tzOffset)).toISOString().slice(0, 16);
+          }
         }
         
         if (data.subscription) {
-          // If subscription role is not currently in dropdown, add it
           let matched = false;
           for (let opt of roleSelect.options) {
             if (opt.value === data.subscription) {
@@ -326,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
           links = data.links.map(l => ({ label: l.label || '', url: l.url || '' }));
           renderLinks();
         }
+        updateLivePreview();
       })
       .catch(err => {
         console.warn('Could not load meetup details for editing:', err);
@@ -335,21 +386,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function toISOStringWithTZ(dateTimeLocalVal) {
     if (!dateTimeLocalVal) return null;
     const d = new Date(dateTimeLocalVal);
+    if (isNaN(d.getTime())) return null;
     return d.toISOString();
   }
 
-  // Build YAML payload string
+  // Build YAML payload string cleanly
   function buildCommandOutput() {
     const title = titleInput.value.trim();
     if (!title) {
-      alert('Please enter a title for your meetup!');
-      titleInput.focus();
+      return null;
+    }
+
+    const isoDate = toISOStringWithTZ(dateInput.value);
+    if (!isoDate) {
       return null;
     }
 
     const meetupObj = {
       title: title,
-      date: toISOStringWithTZ(dateInput.value),
+      date: isoDate,
     };
 
     if (selectedCategory && selectedCategory !== 'default') {
@@ -371,7 +426,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (rsvpDeadlineInput.value) {
-      meetupObj.rsvpDeadline = toISOStringWithTZ(rsvpDeadlineInput.value);
+      const deadlineIso = toISOStringWithTZ(rsvpDeadlineInput.value);
+      if (deadlineIso) meetupObj.rsvpDeadline = deadlineIso;
     }
 
     if (roleSelect.value) {
@@ -401,22 +457,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let yamlBody = '';
     if (typeof jsyaml !== 'undefined') {
-      yamlBody = jsyaml.dump(meetupObj, { lineWidth: -1 });
+      try {
+        yamlBody = jsyaml.dump(meetupObj, { lineWidth: -1 });
+      } catch (e) {
+        yamlBody = objectToYAML(meetupObj);
+      }
     } else {
-      yamlBody = JSON.stringify(meetupObj, null, 2);
+      yamlBody = objectToYAML(meetupObj);
     }
 
     const commandHead = isEditMode ? `!meetup edit` : `!meetup create`;
     return `${commandHead}\n${yamlBody.trim()}`;
   }
 
-  // Action Event Handlers
-  generateBtn.addEventListener('click', () => {
+  // Update Live Preview on page
+  function updateLivePreview() {
     const cmd = buildCommandOutput();
-    if (!cmd) return;
+    if (cmd) {
+      pageCommandPreview.textContent = cmd;
+      commandPreview.textContent = cmd;
+    } else {
+      const head = isEditMode ? `!meetup edit` : `!meetup create`;
+      const fallbackText = `${head}\ntitle: ${titleInput.value.trim() || 'Your Meetup Title'}\ndate: '${toISOStringWithTZ(dateInput.value) || 'YYYY-MM-DDTHH:mm:ssZ'}'`;
+      pageCommandPreview.textContent = fallbackText;
+      commandPreview.textContent = fallbackText;
+    }
+  }
 
+  // Form input listeners for live updating
+  titleInput.addEventListener('input', updateLivePreview);
+  dateInput.addEventListener('input', updateLivePreview);
+  maxRsvpInput.addEventListener('input', updateLivePreview);
+  rsvpDeadlineInput.addEventListener('input', updateLivePreview);
+  roleSelect.addEventListener('change', updateLivePreview);
+  locationInput.addEventListener('input', updateLivePreview);
+  locationLinkedInput.addEventListener('change', updateLivePreview);
+
+  // Action Event Handlers
+  function copyTextToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      copyToast.classList.add('show');
+      setTimeout(() => {
+        copyToast.classList.remove('show');
+      }, 2500);
+    }).catch(err => {
+      console.error('Failed to copy to clipboard:', err);
+    });
+  }
+
+  generateBtn.addEventListener('click', () => {
+    if (!titleInput.value.trim()) {
+      alert('Please enter a title for your meetup!');
+      titleInput.focus();
+      return;
+    }
+
+    const cmd = buildCommandOutput() || pageCommandPreview.textContent;
     commandPreview.textContent = cmd;
+    pageCommandPreview.textContent = cmd;
+    
+    // Copy command immediately
+    copyTextToClipboard(cmd);
+
+    // Open modal and scroll to command section
     outputModal.classList.add('active');
+    commandOutputCard.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  pageCopyBtn.addEventListener('click', () => {
+    const cmd = buildCommandOutput() || pageCommandPreview.textContent;
+    copyTextToClipboard(cmd);
   });
 
   closeModalBtn.addEventListener('click', () => {
@@ -431,18 +541,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   copyBtn.addEventListener('click', () => {
     const textToCopy = commandPreview.textContent;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      copyToast.classList.add('show');
-      setTimeout(() => {
-        copyToast.classList.remove('show');
-      }, 2500);
-    }).catch(err => {
-      console.error('Failed to copy to clipboard:', err);
-    });
+    copyTextToClipboard(textToCopy);
   });
 
   // Init
   initServerRoleSelection();
   renderCategoryChips();
   checkHashEditMode();
+  updateLivePreview();
 });
