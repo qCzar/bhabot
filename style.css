@@ -627,7 +627,7 @@ input:checked + .slider:before {
 .inline-cmd-text {
   font-family: 'Fira Code', monospace;
   font-size: 0.825rem;
-  color: #a1a1aa;
+  color: var(--text-muted);
   overflow-x: auto;
   white-space: nowrap;
   user-select: all;
@@ -635,16 +635,25 @@ input:checked + .slider:before {
 }
 
 .inline-cmd-text .cmd-verb {
-  color: #60a5fa;
+  color: #2563eb;
 }
 
 .inline-cmd-text .cmd-key {
-  color: #fafafa;
-  font-weight: 500;
+  color: var(--text-main);
+  font-weight: 600;
 }
 
 .inline-cmd-text .cmd-val {
-  color: #34d399;
+  color: #16a34a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .inline-cmd-text .cmd-verb {
+    color: #60a5fa;
+  }
+  .inline-cmd-text .cmd-val {
+    color: #34d399;
+  }
 }
 
 .btn-inline-copy {
