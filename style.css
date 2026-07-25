@@ -1,56 +1,64 @@
-/* Modern Design System for Meetup Creator */
+/* Monotone Design System for Meetup Creator */
 :root {
   color-scheme: light dark;
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  /* Palette */
-  --bg-color: #0f172a;
-  --card-bg: rgba(30, 41, 59, 0.7);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-label: #cbd5e1;
+  /* Monotone Palette (Dark Default) */
+  --bg-color: #09090b;
+  --card-bg: #18181b;
+  --card-border: #27272a;
+  --text-main: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-label: #d4d4d8;
   
-  --primary: #f43f5e;
-  --primary-hover: #e11d48;
-  --primary-light: rgba(244, 63, 94, 0.15);
+  --input-bg: #09090b;
+  --input-border: #27272a;
+  --input-focus-border: #71717a;
   
-  --accent: #38bdf8;
-  --accent-light: rgba(56, 189, 248, 0.15);
+  --chip-bg: #09090b;
+  --chip-border: #27272a;
+  --chip-text: #a1a1aa;
+  --chip-active-bg: #fafafa;
+  --chip-active-border: #fafafa;
+  --chip-active-text: #09090b;
   
-  --input-bg: #1e293b;
-  --input-border: #334155;
-  --input-focus: #f43f5e;
+  /* The ONLY accent color: Used for required asterisks and the generate button */
+  --primary: #ef4444;
+  --primary-hover: #dc2626;
   
-  --danger: #ef4444;
-  --success: #10b981;
-  --warning: #f59e0b;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
+  --success: #22c55e;
   
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.3);
-  --shadow-lg: 0 20px 40px rgba(0,0,0,0.4);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   
-  accent-color: var(--primary);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
+  
+  accent-color: var(--text-main);
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg-color: #f1f5f9;
-    --card-bg: rgba(255, 255, 255, 0.85);
-    --card-border: rgba(0, 0, 0, 0.08);
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --text-label: #334155;
+    --bg-color: #f4f4f5;
+    --card-bg: #ffffff;
+    --card-border: #e4e4e7;
+    --text-main: #09090b;
+    --text-muted: #71717a;
+    --text-label: #27272a;
     
     --input-bg: #ffffff;
-    --input-border: #cbd5e1;
+    --input-border: #d4d4d8;
+    --input-focus-border: #09090b;
     
-    --shadow-md: 0 8px 24px rgba(0,0,0,0.06);
-    --shadow-lg: 0 20px 40px rgba(0,0,0,0.1);
+    --chip-bg: #f4f4f5;
+    --chip-border: #e4e4e7;
+    --chip-text: #71717a;
+    --chip-active-bg: #09090b;
+    --chip-active-border: #09090b;
+    --chip-active-text: #ffffff;
+    
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.05);
   }
 }
 
@@ -67,10 +75,6 @@ body {
   min-height: 100vh;
   line-height: 1.5;
   padding: 2rem 1rem 4rem 1rem;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.12) 0px, transparent 50%);
-  background-attachment: fixed;
 }
 
 .container {
@@ -87,54 +91,45 @@ body {
 .header h1 {
   font-size: 2.25rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
   letter-spacing: -0.02em;
 }
 
 .header p {
   color: var(--text-muted);
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
-.badge-mode {
+.badge-server {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.825rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
   font-weight: 600;
-  background: var(--primary-light);
-  color: var(--primary);
-  border: 1px solid rgba(244, 63, 94, 0.3);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--card-border);
   margin-top: 0.75rem;
 }
 
 /* Section Cards */
 .card-section {
   background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   padding: 1.75rem;
   margin-bottom: 1.5rem;
-  box-shadow: var(--shadow-md);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card-section:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   margin-bottom: 1.25rem;
   color: var(--text-main);
@@ -143,8 +138,14 @@ body {
 }
 
 .section-title i {
-  color: var(--primary);
-  font-size: 1.4rem;
+  color: var(--text-muted);
+  font-size: 1.3rem;
+}
+
+/* Required Asterisk (ONLY COLOR) */
+.required-star {
+  color: var(--primary) !important;
+  font-weight: bold;
 }
 
 /* Form Controls */
@@ -197,14 +198,13 @@ select {
   border-radius: var(--radius-sm);
   color: var(--text-main);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-light);
+  border-color: var(--input-focus-border);
 }
 
 textarea {
@@ -219,12 +219,8 @@ textarea {
   margin-top: 0.25rem;
 }
 
-.char-counter.warning {
-  color: var(--warning);
-}
-
 .char-counter.exceeded {
-  color: var(--danger);
+  color: var(--primary);
   font-weight: 700;
 }
 
@@ -241,9 +237,9 @@ textarea {
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  color: var(--text-muted);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  color: var(--chip-text);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -252,14 +248,14 @@ textarea {
 }
 
 .chip:hover {
-  border-color: var(--primary);
+  border-color: var(--text-muted);
   color: var(--text-main);
 }
 
 .chip.selected {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary);
+  background: var(--chip-active-bg);
+  border-color: var(--chip-active-border);
+  color: var(--chip-active-text);
   font-weight: 700;
 }
 
@@ -274,9 +270,9 @@ textarea {
 .preset-btn {
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-sm);
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  color: var(--text-muted);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  color: var(--chip-text);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -284,14 +280,14 @@ textarea {
 }
 
 .preset-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--text-muted);
   color: var(--text-main);
 }
 
 .preset-btn.active {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--chip-active-bg);
+  border-color: var(--chip-active-border);
+  color: var(--chip-active-text);
 }
 
 /* Toggle Switch */
@@ -341,12 +337,11 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, background-color 0.15s;
+  transition: color 0.15s;
 }
 
 .btn-icon:hover {
-  color: var(--danger);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--primary);
 }
 
 .btn-add-link {
@@ -355,7 +350,7 @@ textarea {
   gap: 0.4rem;
   background: transparent;
   border: 1px dashed var(--input-border);
-  color: var(--accent);
+  color: var(--text-main);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
@@ -367,21 +362,34 @@ textarea {
 }
 
 .btn-add-link:hover {
-  border-color: var(--accent);
-  background: var(--accent-light);
+  border-color: var(--text-main);
 }
 
-/* Action Footer & Modal Output */
+/* Command Output Box */
+.command-preview {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+/* Action Footer */
 .action-bar {
   position: sticky;
   bottom: 1.5rem;
   background: var(--card-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   padding: 1rem 1.5rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -389,6 +397,7 @@ textarea {
   z-index: 50;
 }
 
+/* Generate Button - THE ONLY COLORED BUTTON */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -396,36 +405,52 @@ textarea {
   gap: 0.5rem;
   width: 100%;
   padding: 0.85rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary) 0%, #e11d48 100%);
+  background-color: var(--primary);
   color: #ffffff;
   font-size: 1rem;
   font-weight: 700;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.35);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.45);
+  background-color: var(--primary-hover);
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-/* Command Modal Preview */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background-color: var(--chip-active-bg);
+  color: var(--chip-active-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+}
+
+/* Command Preview Modal */
 .output-modal {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.7);
   z-index: 100;
   padding: 1.5rem;
   align-items: center;
@@ -443,7 +468,7 @@ textarea {
   width: 100%;
   max-width: 600px;
   padding: 1.75rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
@@ -462,30 +487,15 @@ textarea {
   color: var(--text-main);
 }
 
-.command-preview {
-  background: #090d16;
-  border: 1px solid #1e293b;
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-  font-family: 'Fira Code', 'Courier New', Courier, monospace;
-  font-size: 0.875rem;
-  color: #38bdf8;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 320px;
-  overflow-y: auto;
-  margin-bottom: 1.25rem;
-}
-
 .copy-toast {
   position: fixed;
   top: 1.5rem;
   right: 1.5rem;
-  background: var(--success);
-  color: #ffffff;
+  background: var(--text-main);
+  color: var(--bg-color);
   padding: 0.75rem 1.25rem;
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.9rem;
   box-shadow: var(--shadow-md);
   display: flex;

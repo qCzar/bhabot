@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     meetupId = hash;
     isEditMode = true;
-    modeBadge.textContent = `Mode: Editing Meetup #${meetupId}`;
+    if (modeBadge) modeBadge.textContent = `Mode: Editing Meetup #${meetupId}`;
     mainHeaderTitle.textContent = 'Edit Meetup';
 
     fetch(`https://comicidiot.com/meetup/${meetupId}`)
