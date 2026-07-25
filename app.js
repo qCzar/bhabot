@@ -12,7 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const maxRsvpInput = document.getElementById('maxRsvp');
   const rsvpDeadlineInput = document.getElementById('rsvpDeadline');
-  const subscriptionInput = document.getElementById('subscription');
+  
+  // Subscription / Role Elements
+  const roleSelect = document.getElementById('roleSelect');
+  const customRoleInput = document.getElementById('customRoleInput');
+  const serverBadge = document.getElementById('serverBadge');
+  const serverBadgeText = document.getElementById('serverBadgeText');
   
   const locationInput = document.getElementById('location');
   const locationCommentsInput = document.getElementById('locationComments');
@@ -46,10 +51,68 @@ document.addEventListener('DOMContentLoaded', () => {
     { label: 'pet', emoji: '🐕' }
   ];
 
+  // Default Activity Roles
+  const defaultRoles = [
+    'Events',
+    'BoardGames',
+    'Gaming',
+    'Fitness',
+    'Outdoors',
+    'Food',
+    'Drinks',
+    'Concert',
+    'Volunteering'
+  ];
+
   let selectedCategory = 'default';
   let links = [];
   let isEditMode = false;
   let meetupId = null;
+
+  // Render Role Dropdown based on URL Server Parameters or Defaults
+  function initRoleSelection() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const serverParam = urlParams.get('server') || urlParams.get('guild') || urlParams.get('guild_id');
+    const rolesParam = urlParams.get('roles');
+
+    if (serverParam) {
+      serverBadgeText.textContent = `Server: ${serverParam}`;
+      serverBadge.style.display = 'inline-flex';
+    }
+
+    let availableRoles = [...defaultRoles];
+    if (rolesParam) {
+      // Split by comma or pipe
+      const customParamRoles = rolesParam.split(/[,|]/).map(r => r.trim()).filter(Boolean);
+      if (customParamRoles.length > 0) {
+        availableRoles = customParamRoles;
+      }
+    }
+
+    // Populate roleSelect
+    roleSelect.innerHTML = '<option value="">-- No Role Mention --</option>';
+    availableRoles.forEach(role => {
+      const opt = document.createElement('option');
+      opt.value = role;
+      opt.textContent = `@${role}`;
+      roleSelect.appendChild(opt);
+    });
+
+    // Custom option
+    const customOpt = document.createElement('option');
+    customOpt.value = '__CUSTOM__';
+    customOpt.textContent = '✏️ Custom Role...';
+    roleSelect.appendChild(customOpt);
+
+    roleSelect.addEventListener('change', () => {
+      if (roleSelect.value === '__CUSTOM__') {
+        customRoleInput.style.display = 'block';
+        customRoleInput.focus();
+      } else {
+        customRoleInput.style.display = 'none';
+      }
+    });
+  }
 
   // Initialize Category Chips
   function renderCategoryChips() {
@@ -90,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function getDefaultDateTime() {
     const now = new Date();
     now.setHours(now.getHours() + 2, 0, 0, 0);
-    // Format YYYY-MM-DDTHH:mm
     const tzOffset = now.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
     return localISOTime;
@@ -139,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
       linksListContainer.appendChild(row);
     });
 
-    // Attach listeners
     linksListContainer.querySelectorAll('input').forEach(input => {
       input.addEventListener('input', (e) => {
         const idx = parseInt(e.target.getAttribute('data-idx'));
@@ -149,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     linksListContainer.querySelectorAll('[data-remove]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-remove'));
         links.splice(idx, 1);
         renderLinks();
@@ -162,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLinks();
   });
 
-  // Escape HTML Helper
   function escapeHtml(str) {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -205,7 +265,23 @@ document.addEventListener('DOMContentLoaded', () => {
           const tzOffset = dt.getTimezoneOffset() * 60000;
           rsvpDeadlineInput.value = (new Date(dt.getTime() - tzOffset)).toISOString().slice(0, 16);
         }
-        if (data.subscription) subscriptionInput.value = data.subscription;
+        
+        if (data.subscription) {
+          // Check if existing subscription role exists in select
+          let matched = false;
+          for (let opt of roleSelect.options) {
+            if (opt.value === data.subscription) {
+              roleSelect.value = data.subscription;
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            roleSelect.value = '__CUSTOM__';
+            customRoleInput.style.display = 'block';
+            customRoleInput.value = data.subscription;
+          }
+        }
 
         if (data.location) {
           if (typeof data.location === 'object') {
@@ -228,11 +304,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Format ISO String with Timezone Offset for YAML output
   function toISOStringWithTZ(dateTimeLocalVal) {
     if (!dateTimeLocalVal) return null;
     const d = new Date(dateTimeLocalVal);
     return d.toISOString();
+  }
+
+  // Get selected subscription role name
+  function getSelectedSubscriptionRole() {
+    if (roleSelect.value === '__CUSTOM__') {
+      return customRoleInput.value.trim();
+    }
+    return roleSelect.value.trim();
   }
 
   // Build YAML payload string
@@ -271,8 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
       meetupObj.rsvpDeadline = toISOStringWithTZ(rsvpDeadlineInput.value);
     }
 
-    if (subscriptionInput.value.trim()) {
-      meetupObj.subscription = subscriptionInput.value.trim();
+    const subRole = getSelectedSubscriptionRole();
+    if (subRole) {
+      meetupObj.subscription = subRole;
     }
 
     if (descriptionInput.value.trim()) {
@@ -296,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Format with js-yaml if available, else manual fallback
     let yamlBody = '';
     if (typeof jsyaml !== 'undefined') {
       yamlBody = jsyaml.dump(meetupObj, { lineWidth: -1 });
@@ -340,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Init
+  initRoleSelection();
   renderCategoryChips();
   checkHashEditMode();
 });

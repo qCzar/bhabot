@@ -25,7 +25,13 @@
     <header class="header">
       <h1 id="mainHeaderTitle">Create Your Meetup</h1>
       <p>Configure event parameters and generate a command for your Discord channel.</p>
-      <div class="badge-mode" id="modeBadge">Mode: New Meetup</div>
+      <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+        <div class="badge-mode" id="modeBadge">Mode: New Meetup</div>
+        <div class="badge-mode" id="serverBadge" style="display: none; background: var(--accent-light); color: var(--accent); border-color: rgba(56, 189, 248, 0.3);">
+          <i class="material-icons" style="font-size: 0.9rem;">dns</i>
+          <span id="serverBadgeText">Server: Default</span>
+        </div>
+      </div>
     </header>
 
     <form id="meetupForm" onsubmit="return false;">
@@ -82,7 +88,7 @@
       <section class="card-section">
         <h2 class="section-title">
           <i class="material-icons">groups</i>
-          RSVP & Capacity Settings
+          RSVP & Role Notifications
         </h2>
 
         <div class="form-row">
@@ -99,10 +105,14 @@
           </div>
         </div>
 
-        <!-- Subscription / Role Tag -->
+        <!-- Subscription / Role Selector -->
         <div class="form-group">
-          <label for="subscription">Subscription / Tag <span class="hint">(optional channel/role ID or topic)</span></label>
-          <input type="text" id="subscription" placeholder="e.g. board-games or @Events" />
+          <label for="roleSelect">Subscription Role <span class="hint">(optional Discord role to ping)</span></label>
+          <select id="roleSelect" style="margin-bottom: 0.5rem;">
+            <option value="">-- No Role Mention --</option>
+            <!-- Dynamically populated or encoded from referring server -->
+          </select>
+          <input type="text" id="customRoleInput" placeholder="Enter custom role name (e.g. BoardGames)" style="display: none;" />
         </div>
       </section>
 
