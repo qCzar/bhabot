@@ -8,6 +8,7 @@ import * as db from "../db/meetups";
 import * as M from "../common/Meetup";
 import { render } from "../features/RenderAnnouncement";
 import { parse } from "../common/MeetupOptions";
+import { validateSubscriptionRole } from "../common/ValidateRole";
 
 
 const log = logger ("meetup:create");
@@ -42,6 +43,12 @@ export async function create (message: Message) : Promise<void> {
    if (options.failed) {
       log.debug ("Unable to parse meetup options", { reason: options.message });
       message.channel.send (`${mention} - Something is wrong with the options in your command. Make sure to copy and paste everything from the UI! (${options.message})`);
+      return;
+   }
+
+   const roleValidation = await validateSubscriptionRole (options.subscription, message.guildId, message.channel);
+   if (!roleValidation.isValid) {
+      message.channel.send (`${mention} - ${roleValidation.message}`);
       return;
    }
 

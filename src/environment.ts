@@ -21,6 +21,7 @@ const envSchema = z.object ({
    SERVER_ID: z.string (),
    UI_HOSTNAME: z.string (),
    PING_WHITELIST_CHANNELS: z.string ().default (""),
+   ALLOW_EVERYONE_PING: z.coerce.boolean().default(false),
    COOLDOWN_USER_PING: z.coerce.number().default(60),
    COOLDOWN_ROLE_PING: z.coerce.number().default(7200)
 });
@@ -37,7 +38,7 @@ export const dynamicKeys = [
    "CHANNEL_ADMIN", "CHANNEL_BOT_ADMIN", "CHANNEL_MEETUPS", "CHANNEL_MEETUPS_DIR",
    "CHANNEL_SHITPOST", "CHANNEL_THROWDOWN", "CHANNEL_BOT_LOG", "ONBOARDING_CHANNEL_ID",
    "ONBOARDING_ROLE_ID", "ONBOARDING_MIN_LENGTH", "REDDIT_SECRET",
-   "PING_WHITELIST_CHANNELS", "COOLDOWN_USER_PING", "COOLDOWN_ROLE_PING"
+   "PING_WHITELIST_CHANNELS", "ALLOW_EVERYONE_PING", "COOLDOWN_USER_PING", "COOLDOWN_ROLE_PING"
 ] as const;
 
 export type DynamicKey = typeof dynamicKeys[number];

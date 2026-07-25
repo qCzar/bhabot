@@ -7,6 +7,7 @@ import * as Interaction from "../interaction";
 import * as db from "../commands/meetup/db/meetups";
 import * as M from "../commands/meetup/common/Meetup";
 import { parse } from "../commands/meetup/common/MeetupOptions";
+import { validateSubscriptionRole } from "../commands/meetup/common/ValidateRole";
 import { render, refresh } from "../commands/meetup/features/RenderAnnouncement";
 import { getSetting } from "../environment";
 
@@ -130,6 +131,11 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
       return interaction.reply ({ content: `⚠️ Invalid meetup options: ${options.message}`, ephemeral: true });
    }
 
+   const roleValidation = await validateSubscriptionRole (options.subscription, interaction.guildId, interaction.channel);
+   if (!roleValidation.isValid) {
+      return interaction.reply ({ content: roleValidation.message || "⚠️ Invalid role", ephemeral: true });
+   }
+
    const thread = await channel.threads.create ({
       name:                `🗓️  ${M.threadTitle (options.title, options.date)}`,
       reason:              "Meetup discussion thread",
@@ -210,6 +216,11 @@ async function handleEdit (interaction: Discord.ChatInputCommandInteraction) {
 
    if (options.failed) {
       return interaction.reply ({ content: `⚠️ Invalid meetup options: ${options.message}`, ephemeral: true });
+   }
+
+   const roleValidation = await validateSubscriptionRole (options.subscription, interaction.guildId, interaction.channel);
+   if (!roleValidation.isValid) {
+      return interaction.reply ({ content: roleValidation.message || "⚠️ Invalid role", ephemeral: true });
    }
 
    const updated: db.Meetup = {

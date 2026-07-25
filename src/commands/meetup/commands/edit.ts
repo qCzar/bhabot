@@ -6,6 +6,7 @@ import { logger } from "../../../logger";
 import * as db from "../db/meetups";
 import * as M from "../common/Meetup";
 import { parse } from "../common/MeetupOptions";
+import { validateSubscriptionRole } from "../common/ValidateRole";
 import { getSetting } from "../../../environment";
 
 const log = logger ("edit");
@@ -67,6 +68,12 @@ async function updateMeetup(message: Message, meetup: db.Meetup) {
 
    if (options.failed) {
       message.channel.send (`${mention} - Something is wrong with the options in your command. Make sure to copy and paste everything from the UI! (${options.message})`);
+      return;
+   }
+
+   const roleValidation = await validateSubscriptionRole (options.subscription, message.guildId, message.channel);
+   if (!roleValidation.isValid) {
+      message.channel.send (`${mention} - ${roleValidation.message}`);
       return;
    }
 
