@@ -132,7 +132,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function populateRoleDropdown(roleList) {
     roleSelect.innerHTML = '<option value="">-- No Role Mention --</option>';
-    roleList.forEach(role => {
+    // Filter out mass mentions (@everyone / @here) from activity role selection
+    const validRoles = roleList.filter(role => {
+      const name = (role.name || '').replace(/^@/, '').toLowerCase().trim();
+      return name !== 'everyone' && name !== 'here';
+    });
+    validRoles.forEach(role => {
       const opt = document.createElement('option');
       opt.value = role.name;
       opt.setAttribute('data-id', role.id || role.name);
@@ -323,20 +328,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (data.subscription) {
-          let matched = false;
-          for (let opt of roleSelect.options) {
-            if (opt.value === data.subscription) {
-              roleSelect.value = data.subscription;
-              matched = true;
-              break;
+          const subClean = data.subscription.replace(/^@/, '').toLowerCase().trim();
+          if (subClean !== 'everyone' && subClean !== 'here') {
+            let matched = false;
+            for (let opt of roleSelect.options) {
+              if (opt.value === data.subscription) {
+                roleSelect.value = data.subscription;
+                matched = true;
+                break;
+              }
             }
-          }
-          if (!matched) {
-            const opt = document.createElement('option');
-            opt.value = data.subscription;
-            opt.textContent = `@${data.subscription}`;
-            roleSelect.appendChild(opt);
-            roleSelect.value = data.subscription;
+            if (!matched) {
+              const opt = document.createElement('option');
+              opt.value = data.subscription;
+              opt.textContent = `@${data.subscription}`;
+              roleSelect.appendChild(opt);
+              roleSelect.value = data.subscription;
+            }
           }
         }
 

@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'Max Pings Per Meetup',
       key: 'max_pings_per_meetup',
       type: 'number',
-      default: 2,
-      min: 1,
+      default: 1,
+      min: 0,
       unit: 'pings',
       description: 'Maximum number of role pings allowed when scheduling or updating a single meetup event.'
     },
@@ -52,7 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
       key: 'allow_everyone_ping',
       type: 'boolean',
       default: false,
-      description: 'Enable or disable permission for event hosts to ping @everyone or @here in event posts.'
+      description: 'Enable or disable permission for users to ping @everyone or @here in whitelisted channels.'
+    },
+    {
+      id: 'ping_whitelist_channels',
+      category: 'cooldowns',
+      name: 'Ping Whitelist Channels',
+      key: 'ping_whitelist_channels',
+      type: 'text',
+      default: '#announcements, #events',
+      placeholder: '#announcements, #events or 123456789012345678',
+      description: 'Comma-separated list of channel names or Channel IDs where @everyone and @here pings are permitted.'
     },
 
     // Category 2: Meetup & RSVP Defaults
@@ -73,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'Default Max Capacity',
       key: 'max_rsvp_limit',
       type: 'number',
-      default: 15,
+      default: 200,
       min: 1,
       unit: 'attendees',
       description: 'Default maximum RSVP attendee limit per meetup.'
@@ -84,10 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'RSVP Cutoff Deadline Buffer',
       key: 'rsvp_cutoff_hours',
       type: 'number',
-      default: 2,
+      default: 0,
       min: 0,
       unit: 'hours',
-      description: 'Hours prior to event start time when RSVPs automatically close.'
+      description: 'Hours prior to event start time when RSVPs automatically close (0 allows RSVPs up until or after event starts).'
     },
     {
       id: 'require_approval',
@@ -161,6 +171,57 @@ document.addEventListener('DOMContentLoaded', () => {
       type: 'boolean',
       default: true,
       description: 'Allow standard server members to create and host community meetups.'
+    },
+
+    // Category 5: Onboarding & Anti-Spam
+    {
+      id: 'enable_onboarding_welcome',
+      category: 'onboarding',
+      name: 'Enable Onboarding Welcome',
+      key: 'enable_onboarding_welcome',
+      type: 'boolean',
+      default: true,
+      description: 'Automatically send welcome messages and orientation guides when new members join the server.'
+    },
+    {
+      id: 'enable_multipost_detection',
+      category: 'onboarding',
+      name: 'Enable Multi-Post Detection',
+      key: 'enable_multipost_detection',
+      type: 'boolean',
+      default: true,
+      description: 'Detect and flag duplicate or similar messages sent across multiple channels by the same user.'
+    },
+    {
+      id: 'multipost_timeframe',
+      category: 'onboarding',
+      name: 'Multi-Post Detection Timeframe',
+      key: 'multipost_timeframe',
+      type: 'number',
+      default: 60,
+      min: 5,
+      unit: 'seconds',
+      description: 'Time window (in seconds) within which multi-post detection tracks member messages.'
+    },
+    {
+      id: 'multipost_message_limit',
+      category: 'onboarding',
+      name: 'Multi-Post Message Limit',
+      key: 'multipost_message_limit',
+      type: 'number',
+      default: 2,
+      min: 2,
+      unit: 'messages',
+      description: 'Maximum permitted duplicate or similar posts across channels within timeframe before triggering moderation (minimum 2 required).'
+    },
+    {
+      id: 'delete_triggering_message',
+      category: 'onboarding',
+      name: 'Delete Triggering Multi-Post Message',
+      key: 'delete_triggering_message',
+      type: 'boolean',
+      default: false,
+      description: 'Automatically delete the message that triggers a multi-post timeout so only (limit - 1) spam messages remain visible.'
     }
   ];
 
@@ -203,8 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </label>
         `;
       } else if (setting.type === 'number') {
+        const minVal = setting.min !== undefined ? setting.min : 0;
         controlHTML = `
-          <input type="number" id="input-${setting.id}" value="${state[setting.id]}" min="${setting.min || 0}" step="1">
+          <input type="number" id="input-${setting.id}" value="${state[setting.id]}" min="${minVal}" step="1">
         `;
       } else {
         controlHTML = `
@@ -245,14 +307,33 @@ document.addEventListener('DOMContentLoaded', () => {
           if (setting.type === 'boolean') {
             state[setting.id] = e.target.checked;
           } else if (setting.type === 'number') {
-            const val = parseFloat(e.target.value);
-            state[setting.id] = isNaN(val) ? setting.default : val;
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) {
+              val = setting.default;
+            } else if (setting.min !== undefined && val < setting.min) {
+              val = setting.min;
+              e.target.value = setting.min;
+            }
+            state[setting.id] = val;
           } else {
             state[setting.id] = e.target.value;
           }
           updateSingleSettingCommand(setting);
           updateSummaryOutput();
         });
+
+        if (setting.type === 'number') {
+          inputEl.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val) || (setting.min !== undefined && val < setting.min)) {
+              const clampedVal = isNaN(val) ? setting.default : setting.min;
+              e.target.value = clampedVal;
+              state[setting.id] = clampedVal;
+              updateSingleSettingCommand(setting);
+              updateSummaryOutput();
+            }
+          });
+        }
       }
 
       // Inline Copy Button listener
@@ -319,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Helper: Escape HTML
   function escapeHtml(str) {
     if (typeof str !== 'string') return str;
-    return str.replace(/[&<>"']/g, function(m) {
+    return str.replace(/[&<>"']/g, function (m) {
       return {
         '&': '&amp;',
         '<': '&lt;',
