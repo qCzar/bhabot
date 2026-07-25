@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBHA Bot Admin & Server Settings</title>
+  <meta name="description"
+    content="Configure per-server settings for RBHA BoredBot and generate Discord slash commands.">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <h1 id="mainHeaderTitle">Server Settings & Configuration</h1>
+      <p>Customize your server's bot preferences and copy `/boredbot` slash commands to paste into your admin channel.
+        These values are not pulled from the database - they are the default values the bot launches with - and
+        as such do not reflect your servers current configuration.</p>
+
+      <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem;">
+        <div class="badge-server" id="serverBadge" style="display: none;">
+          <i class="material-icons" style="font-size: 0.9rem;">dns</i>
+          <span id="serverBadgeText">Server ID: --</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Server ID Section -->
+    <section class="card-section">
+      <h2 class="section-title">
+        <i class="material-icons">dns</i>
+        Target Server Identification
+      </h2>
+      <div class="form-group">
+        <label for="serverId">Server / Guild ID <span class="hint">(optional - for organizational notes)</span></label>
+        <input type="text" id="serverId" placeholder="e.g. 123456789012345678" />
+      </div>
+    </section>
+
+    <!-- Section 1: Mention Cooldowns & Rate Limits -->
+    <section class="card-section">
+      <h2 class="section-title">
+        <i class="material-icons">timer</i>
+        Mention Cooldowns & Rate Limits
+      </h2>
+      <div id="category-cooldowns">
+        <!-- Rendered by admin.js -->
+      </div>
+    </section>
+
+    <!-- Section 2: Meetup & RSVP Defaults -->
+    <section class="card-section">
+      <h2 class="section-title">
+        <i class="material-icons">event</i>
+        Meetup & RSVP Defaults
+      </h2>
+      <div id="category-meetup">
+        <!-- Rendered by admin.js -->
+      </div>
+    </section>
+
+    <!-- Section 3: Channels & Logs -->
+    <section class="card-section">
+      <h2 class="section-title">
+        <i class="material-icons">tag</i>
+        Channels & Audit Logs
+      </h2>
+      <div id="category-channels">
+        <!-- Rendered by admin.js -->
+      </div>
+    </section>
+
+    <!-- Section 4: Permissions & Moderation -->
+    <section class="card-section">
+      <h2 class="section-title">
+        <i class="material-icons">verified_user</i>
+        Permissions & Moderation
+      </h2>
+      <div id="category-permissions">
+        <!-- Rendered by admin.js -->
+      </div>
+    </section>
+
+    <!-- Summary & Batch Copy Card -->
+    <section class="summary-card">
+      <div class="summary-header">
+        <h2 class="section-title" style="margin-bottom: 0;">
+          <i class="material-icons">terminal</i>
+          All Config Commands Preview
+        </h2>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn-inline-copy" id="resetBtn">
+            <i class="material-icons">restart_alt</i> Reset Defaults
+          </button>
+          <button type="button" class="btn-primary" id="copyAllBtn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+            <i class="material-icons" style="font-size: 1rem; margin-right: 0.2rem;">content_copy</i> Copy All Commands
+          </button>
+        </div>
+      </div>
+      <pre class="summary-pre" id="summaryOutput"></pre>
+    </section>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="copy-toast" id="copyToast">
+    <i class="material-icons">check_circle</i>
+    Command copied to clipboard!
+  </div>
+
+  <!-- JavaScript -->
+  <script src="./admin.js"></script>
+</body>
+
+</html>

@@ -483,3 +483,223 @@ textarea {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Admin Settings Specific Styles */
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.setting-item:hover {
+  border-color: var(--input-focus-border);
+}
+
+.setting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.setting-key {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--card-bg);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+}
+
+.setting-desc {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.setting-control {
+  min-width: 140px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.setting-control input[type="text"],
+.setting-control input[type="number"],
+.setting-control select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-family: var(--font-family);
+  transition: border-color 0.15s ease;
+}
+
+.setting-control input[type="text"]:focus,
+.setting-control input[type="number"]:focus,
+.setting-control select:focus {
+  outline: none;
+  border-color: var(--input-focus-border);
+}
+
+/* Custom Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--card-border);
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--text-muted);
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--text-main);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+  background-color: var(--bg-color);
+}
+
+/* Inline Command Box */
+.inline-cmd-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background-color: var(--bg-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.inline-cmd-text {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.825rem;
+  color: #a1a1aa;
+  overflow-x: auto;
+  white-space: nowrap;
+  user-select: all;
+  flex: 1;
+}
+
+.inline-cmd-text .cmd-verb {
+  color: #60a5fa;
+}
+
+.inline-cmd-text .cmd-key {
+  color: #fafafa;
+  font-weight: 500;
+}
+
+.inline-cmd-text .cmd-val {
+  color: #34d399;
+}
+
+.btn-inline-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-inline-copy:hover {
+  background: var(--chip-active-bg);
+  color: var(--chip-active-text);
+  border-color: var(--chip-active-border);
+}
+
+.btn-inline-copy i {
+  font-size: 0.9rem;
+}
+
+/* Summary Card */
+.summary-card {
+  margin-top: 2rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.summary-pre {
+  background: var(--bg-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
