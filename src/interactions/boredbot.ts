@@ -214,7 +214,11 @@ export const boredbot: interaction = {
                 await interaction.reply({ content: `[${scopeName}] **${key}** is currently set to: \`${value}\``, ephemeral: true });
             } 
             else if (subcommand === "set") {
-                const value = interaction.options.getString("value", true);
+                let value = interaction.options.getString("value", true);
+                // Automatically strip mention wrappers if setting a channel/role ID key
+                if (key.startsWith("CHANNEL_") || key.endsWith("_ID") || key.includes("CHANNELS")) {
+                    value = value.replace(/[<#@&>]/g, "");
+                }
                 try {
                     await updateSetting(world.mongodb, targetGuildId, key, value);
                     await interaction.reply({ content: `[${scopeName}] Successfully updated **${key}** to \`${value}\``, ephemeral: true });
@@ -225,7 +229,10 @@ export const boredbot: interaction = {
                 }
             }
             else if (subcommand === "append") {
-                const valueToAdd = interaction.options.getString("value", true).trim();
+                let valueToAdd = interaction.options.getString("value", true).trim();
+                if (key.startsWith("CHANNEL_") || key.endsWith("_ID") || key.includes("CHANNELS")) {
+                    valueToAdd = valueToAdd.replace(/[<#@&>]/g, "");
+                }
                 const currentValue = (getSetting(targetGuildId, key) as string) || "";
                 
                 const list = currentValue.split(",").map(i => i.trim()).filter(i => i.length > 0);
@@ -247,7 +254,10 @@ export const boredbot: interaction = {
                 }
             }
             else if (subcommand === "remove_item") {
-                const valueToRemove = interaction.options.getString("value", true).trim();
+                let valueToRemove = interaction.options.getString("value", true).trim();
+                if (key.startsWith("CHANNEL_") || key.endsWith("_ID") || key.includes("CHANNELS")) {
+                    valueToRemove = valueToRemove.replace(/[<#@&>]/g, "");
+                }
                 const currentValue = (getSetting(targetGuildId, key) as string) || "";
                 
                 let list = currentValue.split(",").map(i => i.trim()).filter(i => i.length > 0);
