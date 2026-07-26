@@ -143,14 +143,19 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
 
    interaction
       .reply({
-         content: `<@&${sub.id}>\n${message}`,
+         content: `${message} - <@&${sub.id}>`,
          allowedMentions: { roles: [sub.id] }
       })
       .catch(interactionFailed);
 };
 
+const getAdminChannelId = (guildId: string | null) => {
+   const setting = getSetting(guildId, "CHANNEL_BOT_ADMIN") || "";
+   return setting.replace(/[<#@&>]/g, "");
+};
+
 const adminAdd = async (interaction: Discord.ChatInputCommandInteraction) => {
-   if (interaction.channelId !== getSetting(interaction.guildId, "CHANNEL_BOT_ADMIN"))
+   if (interaction.channelId !== getAdminChannelId(interaction.guildId))
       return interaction
          .reply({ content: "This command can only be used in the admin channel", ephemeral: true })
          .catch(interactionFailed);
@@ -181,7 +186,7 @@ const adminAdd = async (interaction: Discord.ChatInputCommandInteraction) => {
 };
 
 const adminRemove = async (interaction: Discord.ChatInputCommandInteraction) => {
-   if (interaction.channelId !== getSetting(interaction.guildId, "CHANNEL_BOT_ADMIN"))
+   if (interaction.channelId !== getAdminChannelId(interaction.guildId))
       return interaction
          .reply({ content: "This command can only be used in the admin channel", ephemeral: true })
          .catch(interactionFailed);

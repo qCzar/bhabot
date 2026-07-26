@@ -11,11 +11,11 @@ export const handleOnboardingMemberAdd = async (member: Discord.GuildMember) => 
     try {
         const channelId = getSetting(guildId, "ONBOARDING_CHANNEL_ID");
         if (!channelId) return;
-        
+
         const channel = await member.guild.channels.fetch(channelId);
         if (channel?.isTextBased()) {
             const minLength = getSetting(guildId, "ONBOARDING_MIN_LENGTH");
-            await channel.send(`Welcome to the server, <@${member.id}>! Please introduce yourself here before you get full access. Tell us about your hobbies, how long you've been in Rochester, or where you moved from! (Minimum ${minLength} characters)`);
+            await channel.send(`Welcome to the server, <@${member.id}>! Please introduce yourself here before you get full access to the rest of the server. Tell us about your hobbies, how long you've been in Rochester, or where you moved from! (Minimum ${minLength} characters)`);
         }
     } catch (e) {
         log.error("Failed to greet new member in onboarding channel", e);
@@ -32,12 +32,12 @@ const processMessage = async (message: Discord.Message | Discord.PartialMessage)
 
     const content = message.content || "";
     const minLength = getSetting(guildId, "ONBOARDING_MIN_LENGTH");
-    
+
     if (content.length >= minLength) {
         try {
             const roleId = getSetting(guildId, "ONBOARDING_ROLE_ID");
             if (!roleId) return;
-            
+
             // Check if member already has the role
             if (message.member.roles.cache.has(roleId)) {
                 return;
