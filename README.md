@@ -380,8 +380,8 @@ Manage which Discord roles are registered as activities. *(Requires Manage Serve
 
 | Subcommand | Options | Description |
 |---|---|---|
-| `add <role>` | `role` | Register a Discord role as an activity |
-| `remove <role>` | `role` (autocomplete) | Remove an activity |
+| `add` | `role` (role) OR `roles` (string) | Add a single role (`role`) or bulk-add multiple mentioned roles (`roles`, e.g. `@Role1 @Role2`) |
+| `remove` | `role` (autocomplete) OR `roles` (string) OR *(none)* | Remove a single activity (`role`), bulk-remove comma-separated activities (`roles`), or leave options blank to **prune** all orphaned activities whose roles no longer exist in the server |
 
 ---
 

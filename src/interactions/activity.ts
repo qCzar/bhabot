@@ -161,28 +161,79 @@ const adminAdd = async (interaction: Discord.ChatInputCommandInteraction) => {
          .catch(interactionFailed);
 
    const role = interaction.options.getRole("role");
+   const rolesStr = interaction.options.getString("roles");
 
-   if (!role)
+   if (!role && !rolesStr)
       return interaction
-         .reply({ content: "You must provide a role to add", ephemeral: true })
+         .reply({ content: "You must provide a single role or a string of multiple roles to add", ephemeral: true })
          .catch(interactionFailed);
 
    const collection = await Subscription.collection();
-   const existing = await collection.findOne({ id: role.id });
 
-   if (existing)
+   if (role) {
+      const existing = await collection.findOne({ id: role.id });
+      if (existing)
+         return interaction
+            .reply({ content: `Role '${role.name}' already exists as an activity`, ephemeral: true })
+            .catch(interactionFailed);
+
+      await collection.insertOne({
+         id: role.id,
+         name: role.name.toLowerCase()
+      });
+
       return interaction
-         .reply({ content: `Role '${role.name}' already exists as an activity`, ephemeral: true })
+         .reply(`Added ${role.name} (${role.id}) to available activities`)
          .catch(interactionFailed);
+   }
 
-   await collection.insertOne({
-      id: role.id,
-      name: role.name.toLowerCase()
-   });
+   if (rolesStr) {
+      const regex = /<@&(\d+)>/g;
+      const matches = [...rolesStr.matchAll(regex)];
+      if (matches.length === 0) {
+         return interaction
+            .reply({ content: "No valid role mentions found in the input string.", ephemeral: true })
+            .catch(interactionFailed);
+      }
 
-   interaction
-      .reply(`Added ${role.name} (${role.id}) to available activities`)
-      .catch(interactionFailed);
+      await interaction.deferReply({ ephemeral: false });
+      let added = [];
+      let existingNames = [];
+      let notFound = [];
+      
+      const guild = interaction.guild;
+      if (!guild) return;
+
+      for (const match of matches) {
+         const roleId = match[1];
+         const r = guild.roles.cache.get(roleId);
+         if (!r) {
+            notFound.push(roleId);
+            continue;
+         }
+
+         const isExisting = await collection.findOne({ id: r.id });
+         if (isExisting) {
+            existingNames.push(r.name);
+            continue;
+         }
+
+         await collection.insertOne({
+            id: r.id,
+            name: r.name.toLowerCase()
+         });
+         added.push(r.name);
+      }
+
+      let msg = [];
+      if (added.length > 0) msg.push(`Added ${added.length} activities: ${added.join(", ")}`);
+      if (existingNames.length > 0) msg.push(`Skipped ${existingNames.length} already existing activities: ${existingNames.join(", ")}`);
+      if (notFound.length > 0) msg.push(`Skipped ${notFound.length} unknown roles.`);
+
+      return interaction
+         .editReply({ content: msg.join("\n") })
+         .catch(interactionFailed);
+   }
 };
 
 const adminRemove = async (interaction: Discord.ChatInputCommandInteraction) => {
@@ -191,25 +242,77 @@ const adminRemove = async (interaction: Discord.ChatInputCommandInteraction) => 
          .reply({ content: "This command can only be used in the admin channel", ephemeral: true })
          .catch(interactionFailed);
 
-   const name = interaction.options.getString("role");
-
-   if (!name)
-      return interaction
-         .reply({ content: "You must provide an activity name to remove it", ephemeral: true })
-         .catch(interactionFailed);
+   const role = interaction.options.getString("role");
+   const rolesStr = interaction.options.getString("roles");
 
    const collection = await Subscription.collection();
-   const sub = await collection.findOne({ name });
 
-   if (!sub)
+   if (!role && !rolesStr) {
+      await interaction.deferReply({ ephemeral: false });
+      const guild = interaction.guild;
+      if (!guild) return;
+
+      const allSubs = await collection.find().toArray();
+      let pruned = [];
+      for (const sub of allSubs) {
+         if (!guild.roles.cache.has(sub.id)) {
+            await collection.deleteOne({ id: sub.id });
+            pruned.push(sub.name);
+         }
+      }
+
+      if (pruned.length > 0) {
+         return interaction
+            .editReply({ content: `Pruned ${pruned.length} orphaned activities: ${pruned.join(", ")}` })
+            .catch(interactionFailed);
+      } else {
+         return interaction
+            .editReply({ content: `No orphaned activities found to prune.` })
+            .catch(interactionFailed);
+      }
+   }
+
+   if (role) {
+      const lowerName = role.toLowerCase();
+      const existing = await collection.findOne({ name: lowerName });
+
+      if (!existing)
+         return interaction
+            .reply({ content: `Role '${role}' is not an activity`, ephemeral: true })
+            .catch(interactionFailed);
+
+      await collection.deleteOne({ name: lowerName });
+
       return interaction
-         .reply({ content: `Can't remove activity: No activity named '${name}' exists`, ephemeral: true })
+         .reply(`Removed ${role} from available activities`)
          .catch(interactionFailed);
+   }
 
-   await collection.deleteOne({ name });
-   interaction
-      .reply(`Removed ${name} from activities`)
-      .catch(interactionFailed);
+   if (rolesStr) {
+      await interaction.deferReply({ ephemeral: false });
+      const names = rolesStr.split(",").map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
+      
+      let removed = [];
+      let notFound = [];
+
+      for (const n of names) {
+         const existing = await collection.findOne({ name: n });
+         if (existing) {
+            await collection.deleteOne({ name: n });
+            removed.push(n);
+         } else {
+            notFound.push(n);
+         }
+      }
+
+      let msg = [];
+      if (removed.length > 0) msg.push(`Removed ${removed.length} activities: ${removed.join(", ")}`);
+      if (notFound.length > 0) msg.push(`Skipped ${notFound.length} unknown activities: ${notFound.join(", ")}`);
+
+      return interaction
+         .editReply({ content: msg.join("\n") })
+         .catch(interactionFailed);
+   }
 };
 
 const { commandType, optionType } = Interaction;
