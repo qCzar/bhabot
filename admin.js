@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (setting.type === 'text') {
       valStr = `"${val}"`;
     }
-    return `/boredbot config set ${setting.key}: ${valStr}`;
+    return `/boredbot settings set key: ${setting.key} value: ${valStr}`;
   }
 
   // Update single setting inline code block
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
       valStr = `"${escapeHtml(val)}"`;
     }
 
-    textEl.innerHTML = `<span class="cmd-verb">/boredbot config set</span> <span class="cmd-key">${escapeHtml(setting.key)}:</span> <span class="cmd-val">${valStr}</span>`;
+    textEl.innerHTML = `<span class="cmd-verb">/boredbot settings set</span> key: <span class="cmd-key">${escapeHtml(setting.key)}</span> value: <span class="cmd-val">${valStr}</span>`;
   }
 
   // Update Summary card showing all commands
