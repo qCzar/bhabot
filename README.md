@@ -58,7 +58,11 @@ pnpm install
 
 ### 2. Configure Environment Variables
 
-Copy or create a `.env` file in the project root. All variables below are required unless a default is noted.
+Copy `.env.example` to `.env` in the project root:
+
+```bash
+cp .env.example .env
+```
 
 #### Global System Variables (`.env` only)
 These variables configure application-wide infrastructure and cannot be changed per-server at runtime:
@@ -68,7 +72,7 @@ These variables configure application-wide infrastructure and cannot be changed 
 | `DISCORD_TOKEN` | Bot token from the Discord Developer Portal | — |
 | `DISCORD_CLIENT_ID` | Application (client) ID from the Developer Portal | — |
 | `SERVER_ID` | Main Discord server (guild) ID | — |
-| `MONGO_URL` | MongoDB connection string (e.g. `mongodb://localhost:27017/sjbha`) | — |
+| `MONGO_URL` | MongoDB connection string (e.g. `mongodb://username:password@127.0.0.1:27017/sjbha?authSource=admin`) | — |
 | `HTTP_PORT` | Port for the internal Hapi HTTP server | — |
 | `HAPI_HOST` | Hostname for the Hapi server | — |
 | `UI_HOSTNAME` | Public URL for any linked web UIs | — |
@@ -102,7 +106,7 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 DISCORD_TOKEN=your_bot_token_here
 DISCORD_CLIENT_ID=123456789012345678
 SERVER_ID=987654321098765432
-MONGO_URL=mongodb://localhost:27017/sjbha
+MONGO_URL=mongodb://sjbha_user:secure_password@127.0.0.1:27017/sjbha?authSource=admin
 HTTP_PORT=3000
 HAPI_HOST=localhost
 UI_HOSTNAME=https://your-ui-host.example.com
@@ -118,7 +122,80 @@ ONBOARDING_ROLE_ID=999999999999999999
 REDDIT_SECRET=your_reddit_secret
 ```
 
-### 3. Register the Bot with Discord
+---
+
+### 3. Securing MongoDB (Critical)
+
+> [!WARNING]
+> Running MongoDB without authentication or exposed to `0.0.0.0` leaves your database vulnerable to automated internet ransomware bots that scan port 27017 and wipe unauthenticated databases.
+
+Follow these steps to secure your local MongoDB instance or deployment:
+
+#### Option A: Local MongoDB Service
+
+1. **Restrict Network Binding (Localhost Only)**
+   Edit your MongoDB configuration file (typically `/etc/mongod.conf` on Linux):
+   ```yaml
+   net:
+     port: 27017
+     bindIp: 127.0.0.1
+   ```
+   Restart MongoDB:
+   ```bash
+   sudo systemctl restart mongod
+   ```
+
+2. **Create Admin & Application User Credentials**
+   Connect to MongoDB via shell (`mongosh`):
+   ```js
+   use admin
+   db.createUser({
+     user: "adminUser",
+     pwd: "StrongAdminPasswordHere",
+     roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
+   })
+
+   use sjbha
+   db.createUser({
+     user: "sjbha_user",
+     pwd: "StrongAppPasswordHere",
+     roles: [ { role: "readWrite", db: "sjbha" } ]
+   })
+   ```
+
+3. **Enable Authorization**
+   In `/etc/mongod.conf`, enable security authorization:
+   ```yaml
+   security:
+     authorization: enabled
+   ```
+   Restart MongoDB again (`sudo systemctl restart mongod`).
+
+4. **Firewall Rules**
+   Ensure external access to port 27017 is blocked:
+   ```bash
+   sudo ufw deny 27017
+   ```
+
+5. **Update `.env` Connection String**
+   Use the authenticated database URI:
+   ```env
+   MONGO_URL=mongodb://sjbha_user:StrongAppPasswordHere@127.0.0.1:27017/sjbha?authSource=admin
+   ```
+
+#### Option B: Docker Compose Deployment (Recommended for Easy Setup)
+
+Use the included `docker-compose.yml` to automatically run MongoDB isolated on localhost with authentication enabled:
+
+```bash
+docker-compose up -d
+```
+
+The Docker Compose configuration automatically restricts MongoDB's port exposure to `127.0.0.1:27017:27017` and passes root credentials securely via environment variables.
+
+---
+
+### 4. Register the Bot with Discord
 
 The bot automatically registers its slash commands with Discord on startup (via `Routes.applicationCommands`). No manual command registration is needed — just start the bot.
 
@@ -128,7 +205,7 @@ For the bot to appear in your server, make sure you have invited it with the cor
 
 Use the Discord Developer Portal → OAuth2 → URL Generator to generate an invite link with these scopes and the permissions your bot needs (at minimum: Send Messages, Read Message History, Manage Roles, Kick Members for mod features).
 
-### 4. Run the Bot
+### 5. Run the Bot
 
 **Development** (auto-restarts on file changes):
 ```bash

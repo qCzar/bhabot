@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: sjbha_mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-secure_root_password_change_me}
+      MONGO_INITDB_DATABASE: sjbha
+    ports:
+      # Bind exclusively to 127.0.0.1 (localhost) to prevent exposure to the public internet
+      # Format: 127.0.0.1:[HOST_PORT]:[CONTAINER_PORT]
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  bot:
+    build: .
+    container_name: sjbha_bot
+    restart: always
+    depends_on:
+      - mongodb
+    env_file:
+      - .env
+    environment:
+      # Automatically use internal docker host if MONGO_URL isn't explicitly overridden in .env
+      MONGO_URL: ${MONGO_URL:-mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-secure_root_password_change_me}@mongodb:27017/sjbha?authSource=admin}
+    ports:
+      - "${HTTP_PORT:-3000}:${HTTP_PORT:-3000}"
+
+volumes:
+  mongo_data:
