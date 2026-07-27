@@ -44,7 +44,7 @@ export const handleBanSubcommand = async (interaction: ChatInputCommandInteracti
       await interaction.reply(message).catch(interactionFailed);
    } else {
       const reason = reasons.getReason();
-      const message = `<@!${targetUser.id}> has been banned from the server; Reason: *${reason}*`;
+      const message = `${targetUser} has been banned from the server; Reason: *${reason}*`;
 
       await interaction.reply(message).catch(interactionFailed);
    }
