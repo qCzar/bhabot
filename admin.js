@@ -13,23 +13,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsDefinitions = [
     // Category 1: Mention Cooldowns & Pings
     {
-      id: 'user_mention_cooldown',
+      id: 'COOLDOWN_USER_PING',
       category: 'cooldowns',
       name: 'User Mention Cooldown',
-      key: 'user_mention_cooldown',
+      key: 'COOLDOWN_USER_PING',
       type: 'number',
-      default: 300,
+      default: 60,
       min: 0,
       unit: 'seconds',
       description: 'Cooldown period (in seconds) required before a single user can send another role mention.'
     },
     {
-      id: 'role_mention_cooldown',
+      id: 'COOLDOWN_ROLE_PING',
       category: 'cooldowns',
       name: 'Role Mention Cooldown',
-      key: 'role_mention_cooldown',
+      key: 'COOLDOWN_ROLE_PING',
       type: 'number',
-      default: 600,
+      default: 7200,
       min: 0,
       unit: 'seconds',
       description: 'Global cooldown period (in seconds) before a specific role can be pinged again by anyone.'
@@ -46,21 +46,21 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Maximum number of role pings allowed when scheduling or updating a single meetup event.'
     },
     {
-      id: 'allow_everyone_ping',
+      id: 'ALLOW_EVERYONE_PING',
       category: 'cooldowns',
       name: 'Allow @everyone / @here Pings',
-      key: 'allow_everyone_ping',
+      key: 'ALLOW_EVERYONE_PING',
       type: 'boolean',
       default: false,
       description: 'Enable or disable permission for users to ping @everyone or @here in whitelisted channels.'
     },
     {
-      id: 'ping_whitelist_channels',
+      id: 'PING_WHITELIST_CHANNELS',
       category: 'cooldowns',
       name: 'Ping Whitelist Channels',
-      key: 'ping_whitelist_channels',
+      key: 'PING_WHITELIST_CHANNELS',
       type: 'text',
-      default: '#announcements, #events',
+      default: '',
       placeholder: '#announcements, #events or 123456789012345678',
       description: 'Comma-separated list of channel names or Channel IDs where @everyone and @here pings are permitted.'
     },
@@ -122,24 +122,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Category 3: Channels & Logs
     {
-      id: 'admin_log_channel',
+      id: 'CHANNEL_ADMIN',
       category: 'channels',
-      name: 'Admin Log Channel',
-      key: 'admin_log_channel',
+      name: 'Admin Channel',
+      key: 'CHANNEL_ADMIN',
       type: 'text',
-      default: '#admin-logs',
-      placeholder: '#admin-logs or 123456789012345678',
-      description: 'Discord channel name or Channel ID where admin bot audit events and alerts are posted.'
+      default: '',
+      placeholder: '#admin or 123456789012345678',
+      description: 'Discord channel ID for main admin operations.'
     },
     {
-      id: 'announcement_channel',
+      id: 'CHANNEL_BOT_ADMIN',
       category: 'channels',
-      name: 'Meetups Announcement Channel',
-      key: 'announcement_channel',
+      name: 'Bot Admin Channel',
+      key: 'CHANNEL_BOT_ADMIN',
       type: 'text',
-      default: '#meetups',
+      default: '',
+      placeholder: '#bot-admin or 123456789012345678',
+      description: 'Discord channel ID for bot administration commands.'
+    },
+    {
+      id: 'CHANNEL_MEETUPS',
+      category: 'channels',
+      name: 'Meetups Channel',
+      key: 'CHANNEL_MEETUPS',
+      type: 'text',
+      default: '',
       placeholder: '#meetups or 123456789012345678',
       description: 'Main channel where public meetup cards and notification embeds are published.'
+    },
+    {
+      id: 'CHANNEL_MEETUPS_DIR',
+      category: 'channels',
+      name: 'Meetups Directory Channel',
+      key: 'CHANNEL_MEETUPS_DIR',
+      type: 'text',
+      default: '',
+      placeholder: '#meetup-directory or 123456789012345678',
+      description: 'Directory channel listing active events.'
+    },
+    {
+      id: 'CHANNEL_BOT_LOG',
+      category: 'channels',
+      name: 'Bot Audit Log Channel',
+      key: 'CHANNEL_BOT_LOG',
+      type: 'text',
+      default: '',
+      placeholder: '#bot-logs or 123456789012345678',
+      description: 'Discord channel ID where bot audit events and logs are posted.'
     },
 
     // Category 4: Permissions & Moderation
@@ -175,53 +205,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Category 5: Onboarding & Anti-Spam
     {
-      id: 'enable_onboarding_welcome',
+      id: 'ONBOARDING_CHANNEL_ID',
       category: 'onboarding',
-      name: 'Enable Onboarding Welcome',
-      key: 'enable_onboarding_welcome',
-      type: 'boolean',
-      default: true,
-      description: 'Automatically send welcome messages and orientation guides when new members join the server.'
+      name: 'Onboarding Channel ID',
+      key: 'ONBOARDING_CHANNEL_ID',
+      type: 'text',
+      default: '',
+      placeholder: '#welcome or 123456789012345678',
+      description: 'Channel ID where new members undergo onboarding verification.'
     },
     {
-      id: 'enable_multipost_detection',
+      id: 'ONBOARDING_ROLE_ID',
       category: 'onboarding',
-      name: 'Enable Multi-Post Detection',
-      key: 'enable_multipost_detection',
-      type: 'boolean',
-      default: true,
-      description: 'Detect and flag duplicate or similar messages sent across multiple channels by the same user.'
+      name: 'Onboarding Role ID',
+      key: 'ONBOARDING_ROLE_ID',
+      type: 'text',
+      default: '',
+      placeholder: '123456789012345678',
+      description: 'Role ID assigned to members upon completing onboarding.'
     },
     {
-      id: 'multipost_timeframe',
+      id: 'ONBOARDING_MIN_LENGTH',
       category: 'onboarding',
-      name: 'Multi-Post Detection Timeframe',
-      key: 'multipost_timeframe',
+      name: 'Onboarding Min Message Length',
+      key: 'ONBOARDING_MIN_LENGTH',
       type: 'number',
-      default: 60,
-      min: 5,
-      unit: 'seconds',
-      description: 'Time window (in seconds) within which multi-post detection tracks member messages.'
-    },
-    {
-      id: 'multipost_message_limit',
-      category: 'onboarding',
-      name: 'Multi-Post Message Limit',
-      key: 'multipost_message_limit',
-      type: 'number',
-      default: 2,
-      min: 2,
-      unit: 'messages',
-      description: 'Maximum permitted duplicate or similar posts across channels within timeframe before triggering moderation (minimum 2 required).'
-    },
-    {
-      id: 'delete_triggering_message',
-      category: 'onboarding',
-      name: 'Delete Triggering Multi-Post Message',
-      key: 'delete_triggering_message',
-      type: 'boolean',
-      default: false,
-      description: 'Automatically delete the message that triggers a multi-post timeout so only (limit - 1) spam messages remain visible.'
+      default: 50,
+      min: 1,
+      unit: 'characters',
+      description: 'Minimum character length required for onboarding intro posts.'
     }
   ];
 
