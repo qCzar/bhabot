@@ -10,15 +10,15 @@ export const banSubcommandConfig: Interaction.option = {
    name: "ban",
    description: "Playfully ban a user from the server",
    options: [{
-      type: Interaction.optionType.user,
-      name: "user",
-      description: "The user to ban",
+      type: Interaction.optionType.string,
+      name: "target",
+      description: "The target to ban",
       required: true
    }]
 };
 
 export const handleBanSubcommand = async (interaction: ChatInputCommandInteraction) => {
-   const targetUser = interaction.options.getUser("user", true);
+   const targetUser = interaction.options.getString("target", true);
    const rng = Math.floor(Math.random() * 6);
 
    if (rng === 3) {
