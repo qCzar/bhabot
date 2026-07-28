@@ -100,15 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Hours prior to event start time when RSVPs automatically close (0 allows RSVPs up until or after event starts).'
     },
     {
-      id: 'require_approval',
-      category: 'meetup',
-      name: 'Require Moderator Approval',
-      key: 'require_approval',
-      type: 'boolean',
-      default: false,
-      description: 'When enabled, member-created meetups require moderator sign-off before being published.'
-    },
-    {
       id: 'auto_archive_hours',
       category: 'meetup',
       name: 'Auto-Archive Delay',
@@ -172,38 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Discord channel ID where bot audit events and logs are posted.'
     },
 
-    // Category 4: Permissions & Moderation
-    {
-      id: 'admin_roles',
-      category: 'permissions',
-      name: 'Admin Roles',
-      key: 'admin_roles',
-      type: 'text',
-      default: 'Admin, Server Lead',
-      placeholder: 'Admin, Manager, 9876543210',
-      description: 'Comma-separated role names or Role IDs with full permissions to edit bot settings.'
-    },
-    {
-      id: 'mod_roles',
-      category: 'permissions',
-      name: 'Moderator Roles',
-      key: 'mod_roles',
-      type: 'text',
-      default: 'Moderator, Event Host',
-      placeholder: 'Moderator, Staff',
-      description: 'Comma-separated role names or Role IDs allowed to manage RSVPs and approve events.'
-    },
-    {
-      id: 'allow_member_meetups',
-      category: 'permissions',
-      name: 'Allow Member-Created Meetups',
-      key: 'allow_member_meetups',
-      type: 'boolean',
-      default: true,
-      description: 'Allow standard server members to create and host community meetups.'
-    },
-
-    // Category 5: Onboarding & Anti-Spam
+    // Category 4: Onboarding & Anti-Spam
     {
       id: 'ONBOARDING_CHANNEL_ID',
       category: 'onboarding',
