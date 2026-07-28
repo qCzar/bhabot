@@ -3,17 +3,39 @@ import * as Interaction from "../interaction";
 import * as Subscription from "../commands/subscribe/Subscription";
 import { interactionFailed } from "../errors";
 import { getSetting } from "../environment";
+import { formatActivityListMessages } from "./activity-list";
 
 const list = async (interaction: Discord.ChatInputCommandInteraction) => {
+   if (!(interaction.member instanceof Discord.GuildMember) || !interaction.guild)
+      return interaction
+         .reply({ content: "Activity subscriptions are only available in a server.", ephemeral: true })
+         .catch(interactionFailed);
+
+   const member = interaction.member;
+   const guild = interaction.guild;
    const collection = await Subscription.collection();
    const subs = await collection.find().toArray();
-   const names = subs.map(sub => sub.name).join(", ");
+   const activities = subs.flatMap(sub => {
+      const role = guild.roles.cache.get(sub.id);
+      return role ? [{ id: sub.id, name: role.name }] : [];
+   });
+   const joinedNames = activities
+      .filter(activity => member.roles.cache.has(activity.id))
+      .map(activity => activity.name);
+   const availableNames = activities
+      .filter(activity => !member.roles.cache.has(activity.id))
+      .map(activity => activity.name);
+   const messages = formatActivityListMessages(joinedNames, availableNames);
 
-   interaction
-      .reply(names.length > 0
-         ? `Available activities: ${names}`
-         : "There are no activities available")
+   await interaction
+      .reply({ content: messages[0], ephemeral: true })
       .catch(interactionFailed);
+
+   for (const content of messages.slice(1)) {
+      await interaction
+         .followUp({ content, ephemeral: true })
+         .catch(interactionFailed);
+   }
 };
 
 const join = async (interaction: Discord.ChatInputCommandInteraction) => {
@@ -410,8 +432,7 @@ export const handleActivitySubcommand = (interaction: Discord.ChatInputCommandIn
    const subcommand = interaction.options.getSubcommand();
    switch (subcommand) {
       case "list":
-         list(interaction);
-         break;
+         return list(interaction);
       case "join":
          join(interaction);
          break;
@@ -463,4 +484,3 @@ export const handleActivityAutocomplete = async (interaction: Discord.Autocomple
 
    await interaction.respond(filtered);
 };
-

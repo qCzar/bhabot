@@ -316,7 +316,7 @@ Opt-in role subscriptions. Members can self-assign Discord roles to stay in the 
 
 | Subcommand | Options | Description |
 |---|---|---|
-| `list` | — | List all available activities |
+| `list` | — | Privately list activities, grouped by roles you have and roles available to join |
 | `join <role>` | `role` (autocomplete) | Join an activity and receive its role |
 | `leave <role>` | `role` (autocomplete) | Leave an activity and remove its role |
 
