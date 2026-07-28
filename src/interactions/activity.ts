@@ -147,7 +147,7 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
 
       return interaction
          .reply({
-            content: `@${lowerName}\n${message}`,
+            content: `${message} - @${lowerName}`,
             allowedMentions: { parse: ["everyone"] }
          })
          .catch(interactionFailed);
@@ -223,7 +223,7 @@ const adminAdd = async (interaction: Discord.ChatInputCommandInteraction) => {
       let added = [];
       let existingNames = [];
       let notFound = [];
-      
+
       const guild = interaction.guild;
       if (!guild) return;
 
@@ -314,7 +314,7 @@ const adminRemove = async (interaction: Discord.ChatInputCommandInteraction) => 
    if (rolesStr) {
       await interaction.deferReply({ ephemeral: false });
       const names = rolesStr.split(",").map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
-      
+
       let removed = [];
       let notFound = [];
 
