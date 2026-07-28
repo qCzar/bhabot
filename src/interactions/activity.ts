@@ -4,6 +4,7 @@ import * as Subscription from "../commands/subscribe/Subscription";
 import { interactionFailed } from "../errors";
 import { getSetting } from "../environment";
 import { formatActivityListMessages } from "./activity-list";
+import { isPingWhitelistedChannel } from "./ping-whitelist";
 
 const list = async (interaction: Discord.ChatInputCommandInteraction) => {
    if (!(interaction.member instanceof Discord.GuildMember) || !interaction.guild)
@@ -134,8 +135,8 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
 
    if (isSpecial) {
       const whitelistStr = getSetting(interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
-      const whitelist = whitelistStr.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
-      if (!whitelist.includes(interaction.channelId)) {
+      const parentId = interaction.channel?.isThread() ? interaction.channel.parentId : null;
+      if (!isPingWhitelistedChannel(whitelistStr, interaction.channelId, parentId)) {
          return interaction
             .reply({ content: `You can only ping @${lowerName} in whitelisted channels.`, ephemeral: true })
             .catch(interactionFailed);
@@ -472,8 +473,8 @@ export const handleActivityAutocomplete = async (interaction: Discord.Autocomple
    const subs = subsFromDb.map(sub => ({ name: sub.name, value: sub.name }));
 
    const whitelistStr = getSetting(interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
-   const whitelist = whitelistStr.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
-   if (whitelist.includes(interaction.channelId)) {
+   const parentId = interaction.channel?.isThread() ? interaction.channel.parentId : null;
+   if (isPingWhitelistedChannel(whitelistStr, interaction.channelId, parentId)) {
       subs.push({ name: "everyone", value: "everyone" });
       subs.push({ name: "here", value: "here" });
    }

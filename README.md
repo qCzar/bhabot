@@ -94,7 +94,7 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 | `ONBOARDING_ROLE_ID` | Role ID granted after a user completes onboarding | — |
 | `ONBOARDING_MIN_LENGTH` | Minimum intro message length required for onboarding | `50` |
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
-| `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored mention everyone` | `""` |
+| `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored mention everyone`; threads inherit approval from a whitelisted parent channel (including all posts in a forum) | `""` |
 | `COOLDOWN_USER_PING` | Per-user cooldown duration in seconds for mentioning roles | `60` |
 | `COOLDOWN_ROLE_PING` | Per-role cooldown duration in seconds before a role can be mentioned again | `7200` |
 
