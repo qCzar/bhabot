@@ -111,7 +111,7 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
 
    if (!optionsStr) {
       return interaction.reply ({
-         content:   meetupCreatorMessage (env.MEETUP_FORM_URL),
+         content:   meetupCreatorMessage (env.MEETUP_FORM_URL, interaction.guildId),
          ephemeral: true
       });
    }
@@ -216,7 +216,7 @@ async function handleEdit (interaction: Discord.ChatInputCommandInteraction) {
 
    if (!optionsStr) {
       return interaction.reply ({
-         content:   meetupEditMessage (env.MEETUP_FORM_URL, meetup.id),
+         content:   meetupEditMessage (env.MEETUP_FORM_URL, meetup.id, interaction.guildId),
          ephemeral: true
       });
    }

@@ -16,6 +16,11 @@ describe ("meetup creator link", () => {
       expect (meetupCreatorUrl ("https://example.com/form")).toBe ("https://example.com/form/");
    });
 
+   it ("includes the Discord server ID in creator links", () => {
+      expect (meetupCreatorUrl ("https://qczar.github.io/bhabot/", "639610822473154620"))
+         .toBe ("https://qczar.github.io/bhabot/?server=639610822473154620");
+   });
+
    it ("tells the user how to submit the generated options", () => {
       const message = meetupCreatorMessage ("https://qczar.github.io/bhabot/");
 
@@ -24,16 +29,23 @@ describe ("meetup creator link", () => {
    });
 
    it ("builds edit links on the form and calendar links on the API", () => {
-      expect (meetupEditUrl ("https://qczar.github.io/bhabot/", "meetup id"))
-         .toBe ("https://qczar.github.io/bhabot/#meetup%20id");
-      expect (meetupCalendarUrl ("http://meetup.rochesterbored.com", "meetup id"))
-         .toBe ("http://meetup.rochesterbored.com/meetup/meetup%20id/gcal");
+      expect (meetupEditUrl (
+         "https://qczar.github.io/bhabot/",
+         "meetup id",
+         "639610822473154620"
+      )).toBe ("https://qczar.github.io/bhabot/?server=639610822473154620#meetup%20id");
+      expect (meetupCalendarUrl ("https://meetup.rochesterbored.com", "meetup id"))
+         .toBe ("https://meetup.rochesterbored.com/meetup/meetup%20id/gcal");
    });
 
    it ("tells the user how to submit edits for the selected meetup", () => {
-      const message = meetupEditMessage ("https://qczar.github.io/bhabot/", "meetup id");
+      const message = meetupEditMessage (
+         "https://qczar.github.io/bhabot/",
+         "meetup id",
+         "639610822473154620"
+      );
 
-      expect (message).toContain ("https://qczar.github.io/bhabot/#meetup%20id");
+      expect (message).toContain ("https://qczar.github.io/bhabot/?server=639610822473154620#meetup%20id");
       expect (message).toContain ("/bored meetup edit options:");
    });
 });

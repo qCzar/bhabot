@@ -77,7 +77,7 @@ These variables configure application-wide infrastructure and cannot be changed 
 | `HTTP_PORT` | Port for the internal Hapi HTTP server | — |
 | `HAPI_HOST` | Hostname for the Hapi server | — |
 | `MEETUP_FORM_URL` | Public URL for the meetup creation/edit form | `https://qczar.github.io/bhabot/` |
-| `MEETUP_API_URL` | Public URL for meetup data and calendar routes | `http://meetup.rochesterbored.com` |
+| `MEETUP_API_URL` | Public URL for meetup data and calendar routes | `https://meetup.rochesterbored.com` |
 | `NODE_ENV` | `development` or `production` | `development` |
 
 #### Per-Server Configurable Settings (`.env` or `/boredbot settings`)
@@ -112,7 +112,7 @@ MONGO_URL=mongodb://sjbha_user:secure_password@127.0.0.1:27017/sjbha?authSource=
 HTTP_PORT=3000
 HAPI_HOST=localhost
 MEETUP_FORM_URL=https://qczar.github.io/bhabot/
-MEETUP_API_URL=http://meetup.rochesterbored.com
+MEETUP_API_URL=https://meetup.rochesterbored.com
 CHANNEL_ADMIN=111111111111111111
 CHANNEL_BOT_ADMIN=222222222222222222
 CHANNEL_BOT_LOG=333333333333333333
@@ -355,11 +355,13 @@ Create and manage community meetups. Each meetup gets its own discussion thread 
 
 Run `/bored meetup create` without options to receive a private link to
 `MEETUP_FORM_URL`. Fill out the web form, then paste its generated YAML into
-the `options` field of the same command to create the meetup.
+the `options` field of the same command to create the meetup. The link includes
+the Discord server ID so the form can populate that server's activity roles.
 
 Run `/bored meetup edit` without options inside a meetup thread to receive a
-private editor link containing that meetup's ID. After editing the form, paste
-its generated YAML into the `options` field of the same command in the thread.
+private editor link containing that meetup's ID and the Discord server ID.
+After editing the form, paste its generated YAML into the `options` field of
+the same command in the thread.
 
 **YAML options format** (passed to `create` / `edit`):
 ```yaml
