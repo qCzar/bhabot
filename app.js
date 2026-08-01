@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Query Database API endpoint for registered activity roles for this server
     roleLoadingStatus.textContent = `Loading registered activity roles for server ${serverId}...`;
 
-    fetch(`https://comicidiot.com/api/activities?server=${encodeURIComponent(serverId)}`)
+    fetch(`https://meetup.rochesterbored.com/activities?server=${encodeURIComponent(serverId)}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -113,20 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(err => {
         console.warn('Could not fetch activity roles from database API:', err);
-        fetch(`https://comicidiot.com/activities?server=${encodeURIComponent(serverId)}`)
-          .then(r => r.json())
-          .then(data => {
-            if (Array.isArray(data) && data.length > 0) {
-              serverActivities = data;
-              populateRoleDropdown(serverActivities);
-              roleLoadingStatus.textContent = `${data.length} registered activity role(s) loaded.`;
-            } else {
-              roleLoadingStatus.textContent = 'No registered activity roles found for this server.';
-            }
-          })
-          .catch(() => {
-            roleLoadingStatus.textContent = 'Could not connect to database API to load server activity roles.';
-          });
+        roleLoadingStatus.textContent = 'Could not connect to the activity role service.';
       });
   }
 
