@@ -3,11 +3,14 @@ import * as Interaction from "../interaction";
 import { interactionFailed } from "../errors";
 import { getSetting } from "../environment";
 import { getWhitelistedChannelIds, isPingWhitelistedChannel } from "./ping-whitelist";
+import {
+   getPlatformAutocompleteChoices,
+   getPlatformChoices,
+   Platform,
+   resolvePlatform
+} from "./play-platforms";
 
-type Platform = {
-   id: string;
-   name: string;
-};
+export { getPlatformAutocompleteChoices, getPlatformChoices, resolvePlatform } from "./play-platforms";
 
 export const playSubcommandConfig: Interaction.option = {
    type: Interaction.optionType.sub_command,
@@ -29,18 +32,6 @@ export const playSubcommandConfig: Interaction.option = {
       }
    ]
 };
-
-export function getPlatformChoices (
-   forums: ReadonlyArray<{ id: string; availableTags: ReadonlyArray<Platform> }>,
-   whitelistRaw: string
-): Platform[] {
-   const whitelistedIds = new Set (getWhitelistedChannelIds (whitelistRaw));
-   const platforms = forums
-      .filter (forum => whitelistedIds.has (forum.id))
-      .flatMap (forum => forum.availableTags);
-
-   return [...new Map (platforms.map (platform => [platform.id, platform])).values ()];
-}
 
 async function getWhitelistedPlatforms (
    interaction: Discord.ChatInputCommandInteraction | Discord.AutocompleteInteraction
@@ -74,7 +65,7 @@ export async function handlePlaySubcommand (interaction: Discord.ChatInputComman
       return;
    }
 
-   const platform = (await getWhitelistedPlatforms (interaction)).find (item => item.id === platformId);
+   const platform = resolvePlatform (await getWhitelistedPlatforms (interaction), platformId);
    if (!platform) {
       await interaction.reply ({ content: "Please choose a platform from the available forum tags.", ephemeral: true }).catch (interactionFailed);
       return;
@@ -90,9 +81,7 @@ export async function handlePlayAutocomplete (interaction: Discord.AutocompleteI
    const focusedValue = interaction.options.getFocused ();
    const search = typeof focusedValue === "string" ? focusedValue.toLowerCase () : "";
    const platforms = await getWhitelistedPlatforms (interaction);
-   const choices = platforms
-      .filter (platform => platform.name.toLowerCase ().includes (search))
-      .slice (0, 25);
+   const choices = getPlatformAutocompleteChoices (platforms, search);
 
    await interaction.respond (choices);
 }
