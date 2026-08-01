@@ -5,6 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const titleInput = document.getElementById('title');
   const dateInput = document.getElementById('date');
   const durationInput = document.getElementById('duration');
+  const recurrenceEnabled = document.getElementById('recurrenceEnabled');
+  const recurrenceFields = document.getElementById('recurrenceFields');
+  const recurrenceInterval = document.getElementById('recurrenceInterval');
+  const recurrenceWeekdays = [...document.querySelectorAll('#recurrenceWeekdays input')];
+  const recurrenceEndDate = document.getElementById('recurrenceEndDate');
+  const recurrenceSummary = document.getElementById('recurrenceSummary');
+  const recurringEditNotice = document.getElementById('recurringEditNotice');
+  const editScopeGroup = document.getElementById('editScopeGroup');
+  const editScope = document.getElementById('editScope');
   const categoryChipsContainer = document.getElementById('categoryChips');
   const descriptionInput = document.getElementById('description');
   const descCharCount = document.getElementById('descCharCount');
@@ -58,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isEditMode = false;
   let meetupId = null;
   let serverActivities = [];
+  let existingRecurringSeries = false;
 
   // Fetch registered server activity roles from Database based on Server ID parameter
   function initServerRoleSelection() {
@@ -162,6 +172,41 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   dateInput.value = getDefaultDateTime();
+  const isoWeekday = date => ((date.getDay() + 6) % 7) + 1;
+  const selectedWeekdays = () => recurrenceWeekdays.filter(input => input.checked).map(input => Number(input.value));
+
+  function updateRecurrenceSummary() {
+    if (!recurrenceEnabled.checked) return;
+    const days = recurrenceWeekdays.filter(input => input.checked).map(input => input.nextElementSibling.textContent);
+    const interval = Math.max(1, Number(recurrenceInterval.value) || 1);
+    const time = dateInput.value ? new Date(dateInput.value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'the selected time';
+    const end = recurrenceEndDate.value
+      ? new Date(`${recurrenceEndDate.value}T12:00:00`).toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'an end date';
+    recurrenceSummary.textContent = days.length
+      ? `Every ${interval === 1 ? '' : `${interval} weeks on `}${days.join(', ')} at ${time}, through ${end}.`
+      : 'Select at least one weekday.';
+  }
+
+  function showRecurrenceFields(enabled) {
+    recurrenceFields.hidden = !enabled;
+    recurrenceEnabled.setAttribute('aria-expanded', String(enabled));
+    recurrenceEndDate.required = enabled;
+    if (enabled && selectedWeekdays().length === 0 && dateInput.value) {
+      const firstDay = isoWeekday(new Date(dateInput.value));
+      const input = recurrenceWeekdays.find(item => Number(item.value) === firstDay);
+      if (input) input.checked = true;
+    }
+    if (dateInput.value) recurrenceEndDate.min = dateInput.value.slice(0, 10);
+    updateRecurrenceSummary();
+    updateLivePreview();
+  }
+
+  recurrenceEnabled.addEventListener('change', () => showRecurrenceFields(recurrenceEnabled.checked));
+  [recurrenceInterval, recurrenceEndDate, editScope, ...recurrenceWeekdays].forEach(input => {
+    input.addEventListener('input', () => { updateRecurrenceSummary(); updateLivePreview(); });
+    input.addEventListener('change', () => { updateRecurrenceSummary(); updateLivePreview(); });
+  });
 
   // Character Counters
   descriptionInput.addEventListener('input', () => {
@@ -350,6 +395,17 @@ document.addEventListener('DOMContentLoaded', () => {
           links = data.links.map(l => ({ label: l.label || '', url: l.url || '' }));
           renderLinks();
         }
+        if (data.recurrence) {
+          existingRecurringSeries = true;
+          recurrenceEnabled.checked = true;
+          recurrenceEnabled.disabled = true;
+          recurrenceInterval.value = data.recurrence.interval || 1;
+          recurrenceEndDate.value = data.recurrence.endDate || '';
+          recurrenceWeekdays.forEach(input => { input.checked = data.recurrence.weekdays.includes(Number(input.value)); });
+          recurringEditNotice.hidden = false;
+          editScopeGroup.hidden = false;
+          showRecurrenceFields(true);
+        }
         updateLivePreview();
       })
       .catch(err => {
@@ -381,12 +437,22 @@ document.addEventListener('DOMContentLoaded', () => {
       date: isoDate,
     };
 
+    const editsSeries = isEditMode && existingRecurringSeries && editScope.value === 'future';
+    if (recurrenceEnabled.checked && (!isEditMode || editsSeries)) {
+      meetupObj.recurrence = {
+        frequency: 'weekly',
+        interval: Math.max(1, parseInt(recurrenceInterval.value, 10) || 1),
+        weekdays: selectedWeekdays(),
+        endDate: recurrenceEndDate.value
+      };
+    }
+
     if (selectedCategory && selectedCategory !== 'default') {
       meetupObj.category = selectedCategory;
     }
 
     if (durationInput.value) {
-      const dur = parseInt(durationInput.value, 10);
+      const dur = parseFloat(durationInput.value);
       if (!isNaN(dur) && dur > 0) {
         meetupObj.duration = dur;
       }
@@ -441,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const commandHead = isEditMode
-      ? `/bored meetup edit options:`
+      ? `/bored meetup edit${editsSeries ? ' scope:future' : ''} options:`
       : `/bored meetup create options:`;
     return `${commandHead}\n${yamlBody.trim()}`;
   }
@@ -465,6 +531,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form input listeners for live updating
   titleInput.addEventListener('input', updateLivePreview);
   dateInput.addEventListener('input', updateLivePreview);
+  dateInput.addEventListener('change', () => {
+    if (dateInput.value) recurrenceEndDate.min = dateInput.value.slice(0, 10);
+    updateRecurrenceSummary();
+  });
   maxRsvpInput.addEventListener('input', updateLivePreview);
   rsvpDeadlineInput.addEventListener('input', updateLivePreview);
   roleSelect.addEventListener('change', updateLivePreview);
@@ -488,6 +558,24 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Please enter a title for your meetup!');
       titleInput.focus();
       return;
+    }
+
+    const editsSeries = isEditMode && existingRecurringSeries && editScope.value === 'future';
+    if (recurrenceEnabled.checked && (!isEditMode || editsSeries)) {
+      if (selectedWeekdays().length === 0) {
+        alert('Select at least one weekday for the recurring meetup.');
+        return;
+      }
+      const firstDay = isoWeekday(new Date(dateInput.value));
+      if (!selectedWeekdays().includes(firstDay)) {
+        alert('The selected weekdays must include the first meetup date.');
+        return;
+      }
+      if (!recurrenceEndDate.value || recurrenceEndDate.value < dateInput.value.slice(0, 10)) {
+        alert('Choose an end date on or after the first meetup.');
+        recurrenceEndDate.focus();
+        return;
+      }
     }
 
     const cmd = buildCommandOutput() || pageCommandPreview.textContent;

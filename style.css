@@ -186,6 +186,7 @@ label .hint {
 
 input[type="text"],
 input[type="datetime-local"],
+input[type="date"],
 input[type="number"],
 textarea,
 select {
@@ -281,6 +282,79 @@ textarea {
   color: var(--text-main);
   margin-bottom: 0;
   cursor: pointer;
+}
+
+.conditional-fields {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.weekday-options {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.4rem;
+}
+
+.weekday-options label {
+  margin: 0;
+}
+
+.weekday-options input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.weekday-options span {
+  display: block;
+  padding: 0.55rem 0.25rem;
+  text-align: center;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.weekday-options input:checked + span {
+  background: var(--chip-active-bg);
+  border-color: var(--chip-active-border);
+  color: var(--chip-active-text);
+  font-weight: 700;
+}
+
+.weekday-options input:focus-visible + span {
+  outline: 2px solid var(--input-focus-border);
+  outline-offset: 2px;
+}
+
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.input-with-suffix span {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.series-summary,
+.series-notice {
+  padding: 0.8rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: var(--input-bg);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 600px) {
+  .weekday-options {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 /* Links List */
@@ -711,4 +785,3 @@ input:checked + .slider:before {
   max-height: 280px;
   overflow-y: auto;
 }
-
