@@ -19,6 +19,7 @@ import { handleOnboardingMemberAdd, handleOnboardingMessageCreate, handleOnboard
 
 import * as Legacy from "./deprecating/legacy_instance";
 import * as Meetup from "./commands/meetup/RegisterMeetup";
+import { getActivityRoles } from "./commands/subscribe/ActivitiesRoute";
 
 // slash commands
 import { getLogEmbed } from "./interactions/changelog";
@@ -153,6 +154,11 @@ void async function main() {
 
    world.hapi.route ([
       ...Meetup.routes,
+      {
+         method:  "GET",
+         path:    "/activities",
+         handler: getActivityRoles (world.discord)
+      },
       sanjose.webhook (world.discord)
    ]);
    

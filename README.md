@@ -363,6 +363,10 @@ private editor link containing that meetup's ID and the Discord server ID.
 After editing the form, paste its generated YAML into the `options` field of
 the same command in the thread.
 
+The public `GET /activities?server=<guild-id>` endpoint returns registered
+activity roles that exist in the requested server. The meetup form uses this
+endpoint to populate its role selector.
+
 **YAML options format** (passed to `create` / `edit`):
 ```yaml
 title: "Hike at Alum Rock"
