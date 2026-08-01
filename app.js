@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modeBadge) modeBadge.textContent = `Mode: Editing Meetup #${meetupId}`;
     mainHeaderTitle.textContent = 'Edit Meetup';
 
-    fetch(`http://meetup.rochesterbored.com/meetup/${encodeURIComponent(meetupId)}`)
+    fetch(`https://meetup.rochesterbored.com/meetup/${encodeURIComponent(meetupId)}`)
       .then(res => res.json())
       .then(data => {
         if (!data) return;
