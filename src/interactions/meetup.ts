@@ -8,6 +8,7 @@ import * as db from "../commands/meetup/db/meetups";
 import * as M from "../commands/meetup/common/Meetup";
 import { parse } from "../commands/meetup/common/MeetupOptions";
 import { validateSubscriptionRole } from "../commands/meetup/common/ValidateRole";
+import { meetupStarterPost } from "../commands/meetup/common/MeetupStarter";
 import { render, refresh } from "../commands/meetup/features/RenderAnnouncement";
 import { env, getSetting } from "../environment";
 import { meetupCreatorMessage, meetupEditMessage } from "./meetup-creator";
@@ -144,35 +145,42 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
       return interaction.reply ({ content: roleValidation.message || "⚠️ Invalid role", ephemeral: true });
    }
 
-   const thread = await channel.threads.create ({
-      name:                `🗓️  ${M.threadTitle (options.title, options.date)}`,
-      reason:              "Meetup discussion thread",
-      autoArchiveDuration: 1440,
-   });
-
-   const meetup: db.Meetup = {
-      id:              nanoid (),
-      organizerID:     interaction.user.id,
-      title:           options.title,
-      sourceChannelID: channel.id,
-      threadID:        thread.id,
-      announcementID:  "",
-      createdAt:       DateTime.local ().toISO (),
-      category:        options.category || "default",
-      timestamp:       DateTime.fromISO (options.date).toISO (),
-      description:     options.description || "",
-      links:           options.links ?? [],
-      rsvps:           [interaction.user.id],
-      maybes:          [],
-      location:        M.location (options),
-      maxRsvp:         options.maxRsvp,
-      rsvpDeadline:    options.rsvpDeadline,
-      duration:        options.duration ?? 2,
-      subscription:    options.subscription,
-      state:           { type: "Live" }
-   };
+   let starterPost: Discord.Message | undefined;
+   let thread: Discord.ThreadChannel | undefined;
 
    try {
+      starterPost = await channel.send (
+         meetupStarterPost (options.title, options.date, roleValidation.mention)
+      );
+
+      thread = await starterPost.startThread ({
+         name:                `🗓️  ${M.threadTitle (options.title, options.date)}`,
+         reason:              "Meetup discussion thread",
+         autoArchiveDuration: 1440
+      });
+
+      const meetup: db.Meetup = {
+         id:              nanoid (),
+         organizerID:     interaction.user.id,
+         title:           options.title,
+         sourceChannelID: channel.id,
+         threadID:        thread.id,
+         announcementID:  "",
+         createdAt:       DateTime.local ().toISO (),
+         category:        options.category || "default",
+         timestamp:       DateTime.fromISO (options.date).toISO (),
+         description:     options.description || "",
+         links:           options.links ?? [],
+         rsvps:           [interaction.user.id],
+         maybes:          [],
+         location:        M.location (options),
+         maxRsvp:         options.maxRsvp,
+         rsvpDeadline:    options.rsvpDeadline,
+         duration:        options.duration ?? 2,
+         subscription:    options.subscription,
+         state:           { type: "Live" }
+      };
+
       const post = await render (interaction.client, meetup);
 
       await db.insert ({
@@ -186,7 +194,8 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
       return interaction.reply ({ content: `✅ Meetup **${options.title}** created!`, ephemeral: true });
    }
    catch (e) {
-      await thread.delete ();
+      await thread?.delete ().catch (() => undefined);
+      await starterPost?.delete ().catch (() => undefined);
       return interaction.reply ({ content: "⚠️ Bot broke unexpectedly while trying to post meetup.", ephemeral: true });
    }
 }

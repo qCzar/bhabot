@@ -338,7 +338,9 @@ Opt-in role subscriptions. Members can self-assign Discord roles to stay in the 
 
 ### /bored meetup (group)
 
-Create and manage community meetups. Each meetup gets its own discussion thread in the meetups channel.
+Create and manage community meetups. Creation posts `DATE - TITLE` and the
+selected activity-role mention in the meetups channel, then starts the meetup's
+discussion thread from that post.
 
 | Subcommand | Options | Description |
 |---|---|---|

@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 import { option } from "ts-option";
-import * as db from "../db/meetups";
-import { MeetupOptions } from "./MeetupOptions";
+import type * as db from "../db/meetups";
+import type { MeetupOptions } from "./MeetupOptions";
 
 
 /**

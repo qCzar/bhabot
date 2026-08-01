@@ -2,10 +2,13 @@ import { TextBasedChannel } from "discord.js";
 import * as Subscription from "../../subscribe/Subscription";
 import { getSetting } from "../../../environment";
 
-export type RoleValidationResult = {
-   isValid: boolean;
-   message?: string;
-};
+export type MeetupMention =
+   | { type: "role"; id: string }
+   | { type: "mass"; name: "everyone" | "here" };
+
+export type RoleValidationResult =
+   | { isValid: true; mention?: MeetupMention }
+   | { isValid: false; message: string };
 
 /**
  * Validates a requested subscription role against server settings and database.
@@ -53,28 +56,43 @@ export async function validateSubscriptionRole(
             message: `⚠️ **Invalid Role**: Pinging \`@${normalized}\` is disabled on this server or channel. Pings are restricted to registered activity roles only.`
          };
       }
+
+      return {
+         isValid: true,
+         mention: { type: "mass", name: normalized }
+      };
    }
 
    // 2. Validate against Database Registered Activity Roles
    try {
       const collection = await Subscription.collection();
       const docs = await collection.find({}).toArray();
+      const guildRoles = channel && "guild" in channel
+         ? channel.guild.roles.cache
+         : undefined;
 
-      const exists = docs.some(doc => 
-         doc.name.toLowerCase().trim() === normalized || 
-         doc.id === raw || 
-         doc.name === raw
-      );
+      const subscription = docs.find (doc => {
+         const matches = doc.name.toLowerCase ().trim () === normalized
+            || doc.id === raw
+            || doc.name === raw;
+         return matches && (!guildRoles || guildRoles.has (doc.id));
+      });
 
-      if (!exists && normalized !== "everyone" && normalized !== "here") {
+      if (!subscription) {
          return {
             isValid: false,
             message: `⚠️ **Invalid Role**: \`${raw}\` is not a registered activity role for this server. Please choose a valid role using \`/boredbot activity list\` or the web generator.`
          };
       }
-   } catch (e) {
-      // Allow fallback if DB connection isn't available in test environments
-   }
 
-   return { isValid: true };
+      return {
+         isValid: true,
+         mention: { type: "role", id: subscription.id }
+      };
+   } catch (e) {
+      return {
+         isValid: false,
+         message: "⚠️ Could not validate the selected activity role. Please try again."
+      };
+   }
 }
