@@ -17,7 +17,7 @@ export const meetupStarterPost = (
       content: [
          `🗓️ ${threadTitle (title, timestamp)}`,
          mentionText
-      ].filter (Boolean).join ("\n"),
+      ].filter (Boolean).join (" - "),
       allowedMentions: mention?.type === "role"
          ? { parse: [], roles: [mention.id] }
          : mention?.type === "mass"

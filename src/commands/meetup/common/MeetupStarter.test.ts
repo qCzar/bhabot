@@ -7,7 +7,7 @@ describe ("meetupStarterPost", () => {
          "2026-08-15T19:00:00.000Z",
          { type: "role", id: "123456789" }
       )).toEqual ({
-         content: "🗓️ Aug 15 - Board Game Night\n<@&123456789>",
+         content: "🗓️ Aug 15 - Board Game Night - <@&123456789>",
          allowedMentions: { parse: [], roles: ["123456789"] }
       });
    });
