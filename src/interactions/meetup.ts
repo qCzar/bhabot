@@ -5,11 +5,13 @@ import YAML from "yaml";
 
 import * as Interaction from "../interaction";
 import * as db from "../commands/meetup/db/meetups";
+import * as seriesDb from "../commands/meetup/db/meetup-series";
 import * as M from "../commands/meetup/common/Meetup";
 import { parse } from "../commands/meetup/common/MeetupOptions";
 import { validateSubscriptionRole } from "../commands/meetup/common/ValidateRole";
-import { meetupStarterPost } from "../commands/meetup/common/MeetupStarter";
-import { render, refresh } from "../commands/meetup/features/RenderAnnouncement";
+import { refresh } from "../commands/meetup/features/RenderAnnouncement";
+import { createOccurrence } from "../commands/meetup/features/CreateOccurrence";
+import { generateSeries, reconcileSeries } from "../commands/meetup/features/GenerateRecurringMeetups";
 import { env, getSetting } from "../environment";
 import { meetupCreatorMessage, meetupEditMessage } from "./meetup-creator";
 
@@ -29,6 +31,15 @@ export const meetupSubcommandGroupConfig: Interaction.option = {
             name: "options",
             description: "Paste the YAML from the meetup web UI (omit to open the creator)",
             required: false
+         }, {
+            type: optionType.string,
+            name: "scope",
+            description: "Which recurring meetups to edit",
+            required: false,
+            choices: [
+               { name: "This occurrence only", value: "occurrence" },
+               { name: "This and future occurrences", value: "future" }
+            ]
          }]
       },
       {
@@ -51,6 +62,15 @@ export const meetupSubcommandGroupConfig: Interaction.option = {
             name: "reason",
             description: "Reason for cancelling the meetup",
             required: true
+         }, {
+            type: optionType.string,
+            name: "scope",
+            description: "Cancel this occurrence or the recurring series",
+            required: false,
+            choices: [
+               { name: "This occurrence only", value: "occurrence" },
+               { name: "Entire series", value: "series" }
+            ]
          }]
       },
       {
@@ -145,58 +165,60 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
       return interaction.reply ({ content: roleValidation.message || "⚠️ Invalid role", ephemeral: true });
    }
 
-   let starterPost: Discord.Message | undefined;
-   let thread: Discord.ThreadChannel | undefined;
-
    try {
-      starterPost = await channel.send (
-         meetupStarterPost (options.title, options.date, roleValidation.mention)
-      );
+      await interaction.deferReply ({ ephemeral: true });
+      if (!options.recurrence) {
+         await createOccurrence ({
+            client: interaction.client,
+            channel,
+            organizerID: interaction.user.id,
+            options,
+            mention: roleValidation.mention
+         });
+         return interaction.editReply ({ content: `✅ Meetup **${options.title}** created!` });
+      }
 
-      thread = await starterPost.startThread ({
-         name:                `🗓️  ${M.threadTitle (options.title, options.date)}`,
-         reason:              "Meetup discussion thread",
-         autoArchiveDuration: 1440
-      });
-
-      const meetup: db.Meetup = {
-         id:              nanoid (),
-         organizerID:     interaction.user.id,
-         title:           options.title,
+      const start = DateTime.fromISO (options.date);
+      const recurrenceTimezone = options.recurrence.timezone || getSetting (interaction.guildId, "MEETUP_TIMEZONE");
+      const zonedStart = DateTime.fromISO (options.date, { setZone: true }).setZone (recurrenceTimezone);
+      if (!zonedStart.isValid || !options.recurrence.weekdays.includes (zonedStart.weekday)) {
+         return interaction.editReply ({ content: "⚠️ The first meetup date must fall on one of the selected weekdays in the server timezone." });
+      }
+      const deadlineOffset = options.rsvpDeadline
+         ? DateTime.fromISO (options.rsvpDeadline).diff (start, "minutes").minutes
+         : undefined;
+      const series: seriesDb.MeetupSeries = {
+         id: nanoid (),
+         guildID: interaction.guildId!,
+         organizerID: interaction.user.id,
          sourceChannelID: channel.id,
-         threadID:        thread.id,
-         announcementID:  "",
-         createdAt:       DateTime.local ().toISO (),
-         category:        options.category || "default",
-         timestamp:       DateTime.fromISO (options.date).toISO (),
-         description:     options.description || "",
-         links:           options.links ?? [],
-         rsvps:           [interaction.user.id],
-         maybes:          [],
-         location:        M.location (options),
-         maxRsvp:         options.maxRsvp,
-         rsvpDeadline:    options.rsvpDeadline,
-         duration:        options.duration ?? 2,
-         subscription:    options.subscription,
-         state:           { type: "Live" }
+         createdAt: DateTime.local ().toISO (),
+         firstOccurrenceAt: start.toISO (),
+         title: options.title,
+         description: options.description || "",
+         links: options.links ?? [],
+         category: options.category || "default",
+         location: M.location (options),
+         maxRsvp: options.maxRsvp,
+         rsvpDeadlineOffsetMinutes: deadlineOffset,
+         duration: options.duration ?? 2,
+         subscription: options.subscription,
+         recurrence: {
+            frequency: "weekly",
+            interval: options.recurrence.interval,
+            weekdays: [...new Set (options.recurrence.weekdays)],
+            endDate: options.recurrence.endDate,
+            timezone: recurrenceTimezone
+         },
+         state: { type: "Active" }
       };
-
-      const post = await render (interaction.client, meetup);
-
-      await db.insert ({
-         ...meetup,
-         announcementID: post.id
-      });
-
-      await post.pin ();
-      await thread.members.add (interaction.user.id);
-
-      return interaction.reply ({ content: `✅ Meetup **${options.title}** created!`, ephemeral: true });
+      await seriesDb.insert (series);
+      const created = await generateSeries (interaction.client, series, DateTime.local ().minus ({ seconds: 1 }));
+      return interaction.editReply ({ content: `✅ Recurring meetup **${options.title}** created with ${created} occurrence(s) posted.` });
    }
    catch (e) {
-      await thread?.delete ().catch (() => undefined);
-      await starterPost?.delete ().catch (() => undefined);
-      return interaction.reply ({ content: "⚠️ Bot broke unexpectedly while trying to post meetup.", ephemeral: true });
+      const content = "⚠️ Bot broke unexpectedly while trying to post meetup.";
+      return interaction.deferred ? interaction.editReply ({ content }) : interaction.reply ({ content, ephemeral: true });
    }
 }
 
@@ -261,6 +283,74 @@ async function handleEdit (interaction: Discord.ChatInputCommandInteraction) {
       subscription: options.subscription ?? meetup.subscription
    };
 
+   const scope = interaction.options.getString ("scope") ?? "occurrence";
+   const editableFields = ["title", "timestamp", "description", "category", "links", "location", "maxRsvp", "rsvpDeadline", "duration", "subscription"];
+
+   if (scope === "future" && !meetup.seriesID)
+      return interaction.reply ({ content: "⚠️ This meetup is not part of a recurring series.", ephemeral: true });
+
+   if (scope === "future" && meetup.seriesID) {
+      const series = await seriesDb.findOne ({ id: meetup.seriesID });
+      if (!series) return interaction.reply ({ content: "⚠️ The recurring series could not be found.", ephemeral: true });
+
+      const deadlineOffset = options.rsvpDeadline
+         ? DateTime.fromISO (options.rsvpDeadline).diff (DateTime.fromISO (options.date), "minutes").minutes
+         : series.rsvpDeadlineOffsetMinutes;
+      const nextRecurrence = options.recurrence ? {
+         frequency: "weekly" as const,
+         interval: options.recurrence.interval,
+         weekdays: [...new Set (options.recurrence.weekdays)],
+         endDate: options.recurrence.endDate,
+         timezone: options.recurrence.timezone || series.recurrence.timezone
+      } : series.recurrence;
+      const requestedTime = DateTime.fromISO (options.date, { setZone: true }).setZone (nextRecurrence.timezone);
+      const firstOccurrenceAt = DateTime.fromISO (series.firstOccurrenceAt, { setZone: true })
+         .setZone (nextRecurrence.timezone)
+         .set ({ hour: requestedTime.hour, minute: requestedTime.minute, second: requestedTime.second, millisecond: requestedTime.millisecond })
+         .toISO ();
+      const updatedSeries = await seriesDb.update ({
+         ...series,
+         firstOccurrenceAt,
+         title: options.title,
+         description: options.description || series.description,
+         category: options.category || series.category,
+         links: options.links ?? series.links,
+         location: M.location (options) ?? series.location,
+         maxRsvp: options.maxRsvp ?? series.maxRsvp,
+         rsvpDeadlineOffsetMinutes: deadlineOffset,
+         duration: options.duration ?? series.duration,
+         subscription: options.subscription ?? series.subscription,
+         recurrence: nextRecurrence
+      });
+
+      const future = await db.find ({ seriesID: meetup.seriesID, timestamp: { $gte: meetup.timestamp }, "state.type": "Live" });
+      for (const occurrence of future) {
+         const overrides = new Set (occurrence.overrides ?? []);
+         const next: db.Meetup = {
+            ...occurrence,
+            title: overrides.has ("title") ? occurrence.title : updated.title,
+            description: overrides.has ("description") ? occurrence.description : updated.description,
+            category: overrides.has ("category") ? occurrence.category : updated.category,
+            links: overrides.has ("links") ? occurrence.links : updated.links,
+            location: overrides.has ("location") ? occurrence.location : updated.location,
+            maxRsvp: overrides.has ("maxRsvp") ? occurrence.maxRsvp : updated.maxRsvp,
+            rsvpDeadline: overrides.has ("rsvpDeadline") || deadlineOffset === undefined
+               ? occurrence.rsvpDeadline
+               : DateTime.fromISO (occurrence.timestamp).plus ({ minutes: deadlineOffset }).toISO (),
+            duration: overrides.has ("duration") ? occurrence.duration : updated.duration,
+            subscription: overrides.has ("subscription") ? occurrence.subscription : updated.subscription
+         };
+         if (occurrence.id === meetup.id) next.timestamp = updated.timestamp;
+         await db.update (next);
+         const occurrenceChannel = await interaction.client.channels.fetch (next.threadID);
+         if (occurrenceChannel?.isThread ()) await occurrenceChannel.setName (`🗓️  ${M.threadTitle (next.title, next.timestamp)}`);
+      }
+      if (options.recurrence) await reconcileSeries (interaction.client, updatedSeries, DateTime.fromISO (meetup.timestamp));
+      return interaction.reply ({ content: `✅ **${updated.title}** and future occurrences have been updated.` });
+   }
+
+   if (meetup.seriesID) updated.overrides = [...new Set ([...(meetup.overrides ?? []), ...editableFields])];
+
    await db.update (updated);
 
    await channel.setName (`🗓️  ${M.threadTitle (updated.title, updated.timestamp)}`);
@@ -296,6 +386,38 @@ async function handleCancel (interaction: Discord.ChatInputCommandInteraction) {
    }
 
    const reason = interaction.options.getString ("reason", true);
+   const scope = interaction.options.getString ("scope") ?? "occurrence";
+
+   if (scope === "series" && !meetup.seriesID)
+      return interaction.reply ({ content: "⚠️ This meetup is not part of a recurring series.", ephemeral: true });
+
+   if (scope === "series" && meetup.seriesID) {
+      const series = await seriesDb.findOne ({ id: meetup.seriesID });
+      if (!series) return interaction.reply ({ content: "⚠️ The recurring series could not be found.", ephemeral: true });
+      const cancelledAt = DateTime.local ().toISO ();
+      await seriesDb.update ({ ...series, state: { type: "Cancelled", reason, timestamp: cancelledAt } });
+      const future = await db.find ({ seriesID: meetup.seriesID, timestamp: { $gte: meetup.timestamp }, "state.type": "Live" });
+      for (const occurrence of future) {
+         await db.update ({ ...occurrence, state: { type: "Cancelled", reason, timestamp: cancelledAt } });
+         const occurrenceChannel = await interaction.client.channels.fetch (occurrence.threadID);
+         if (occurrenceChannel?.isThread ()) {
+            await occurrenceChannel.setName (`(Cancelled) ${M.threadTitle (occurrence.title, occurrence.timestamp)}`);
+            if (occurrence.id !== meetup.id && occurrence.rsvps.length) {
+               await occurrenceChannel.send ({
+                  content: `🚫 This recurring meetup has been cancelled. ${occurrence.rsvps.map (id => `<@${id}>`).join (" ")}`,
+                  allowedMentions: { users: occurrence.rsvps }
+               });
+            }
+         }
+      }
+      return interaction.reply ({
+         embeds: [{
+            title: "🚫 Meetup Series Cancelled",
+            description: `**${meetup.title}** and ${future.length} future occurrence(s) have been cancelled.\n> ${reason}`,
+            color: 0xED4245
+         }]
+      });
+   }
 
    await db.update ({
       ...meetup,
@@ -352,8 +474,8 @@ async function handleHelp (interaction: Discord.ChatInputCommandInteraction) {
             "`/bored meetup create` — Open the meetup creator",
             "`/bored meetup create <options>` — Create a meetup from generated YAML",
             "`/bored meetup edit` — Open this meetup in the online editor",
-            "`/bored meetup edit <options>` — Apply generated updates (in thread)",
-            "`/bored meetup cancel <reason>` — Cancel a meetup (in thread)",
+            "`/bored meetup edit <options> [scope]` — Update this occurrence or this and future occurrences",
+            "`/bored meetup cancel <reason> [scope]` — Cancel this occurrence or its recurring series",
             "`/bored meetup announce` — Ping all RSVPs (in thread)",
             "`/bored meetup help` — Show this help",
             "`/boredbot meetup refresh` — Refresh all announcements"

@@ -95,6 +95,10 @@ function Announcement(meetup: db.Meetup, rsvps?: string[], maybes?: string[]): E
       embed.addFields ({ name: "Subscription", value: meetup.subscription });
    }
 
+   if (meetup.seriesID) {
+      embed.addFields ({ name: "Repeats", value: "Part of a recurring meetup series" });
+   }
+
    if (meetup.location) {
       const locationText = (meetup.location.autoLink)
          ? linkify (mapsLink (meetup.location.value), meetup.location.value)

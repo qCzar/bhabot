@@ -24,7 +24,7 @@ export const redirectGoogleCalendar: Hapi.Lifecycle.Method = async (req, reply) 
    const options = {
       action:   "TEMPLATE",
       text:     meetup.title,
-      dates:    encodeDate (ts) + "/" + encodeDate (ts.plus ({ hour: 2 })),
+      dates:    encodeDate (ts) + "/" + encodeDate (ts.plus ({ hours: meetup.duration ?? 2 })),
       details:  meetup.description,
       location: option (meetup.location)
          .filter (loc => loc.autoLink)

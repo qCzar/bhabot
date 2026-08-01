@@ -77,6 +77,13 @@ export type Schema = {
   /** Name of the subscription role to tag */
   subscription?: string;
 
+  /** Recurring series linkage. Absent for one-off meetups. */
+  seriesID?: string;
+  occurrenceKey?: string;
+
+  /** Fields intentionally changed only for this occurrence. */
+  overrides?: string[];
+
   /** Meetup lifecycle */
   state: 
     | { type: "Live" }
@@ -98,6 +105,14 @@ export async function insert(meetup: Meetup) : Promise<Meetup> {
    events.emit ("add", meetup);
 
    return meetup;
+}
+
+export async function ensureIndexes(): Promise<void> {
+   const collection = await getCollection ();
+   await collection.createIndex (
+      { seriesID: 1, occurrenceKey: 1 },
+      { unique: true, sparse: true, name: "unique_series_occurrence" }
+   );
 }
 
 /**

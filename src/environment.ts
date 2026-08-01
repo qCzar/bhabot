@@ -1,5 +1,15 @@
 import * as z from "zod";
 
+const timezone = z.string ().refine (value => {
+   try {
+      new Intl.DateTimeFormat ("en-US", { timeZone: value }).format ();
+      return true;
+   }
+   catch (_) {
+      return false;
+   }
+}, "Must be a valid IANA timezone such as America/Chicago");
+
 const envSchema = z.object ({
    CHANNEL_ADMIN: z.string (),
    CHANNEL_BOT_ADMIN: z.string (),
@@ -21,6 +31,8 @@ const envSchema = z.object ({
    SERVER_ID: z.string (),
    MEETUP_FORM_URL: z.string ().default ("https://qczar.github.io/bhabot/"),
    MEETUP_API_URL: z.string ().default ("https://meetup.rochesterbored.com"),
+   MEETUP_RECURRENCE_WINDOW_DAYS: z.coerce.number ().int ().min (1).max (365).default (21),
+   MEETUP_TIMEZONE: timezone.default ("America/Chicago"),
    PING_WHITELIST_CHANNELS: z.string ().default (""),
    ALLOW_EVERYONE_PING: z.coerce.boolean().default(false),
    COOLDOWN_USER_PING: z.coerce.number().default(60),
@@ -38,7 +50,7 @@ export const guildSettings: Record<string, Partial<environment>> = {};
 export const dynamicKeys = [
    "CHANNEL_ADMIN", "CHANNEL_BOT_ADMIN", "CHANNEL_MEETUPS", "CHANNEL_MEETUPS_DIR",
    "CHANNEL_SHITPOST", "CHANNEL_THROWDOWN", "CHANNEL_BOT_LOG", "ONBOARDING_CHANNEL_ID",
-   "ONBOARDING_ROLE_ID", "ONBOARDING_MIN_LENGTH", "REDDIT_SECRET",
+   "ONBOARDING_ROLE_ID", "ONBOARDING_MIN_LENGTH", "REDDIT_SECRET", "MEETUP_RECURRENCE_WINDOW_DAYS", "MEETUP_TIMEZONE",
    "PING_WHITELIST_CHANNELS", "ALLOW_EVERYONE_PING", "COOLDOWN_USER_PING", "COOLDOWN_ROLE_PING"
 ] as const;
 

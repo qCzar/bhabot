@@ -8,6 +8,7 @@ const MAX_DESCRIPTION_SIZE = 1000;
 // eslint-disable-next-line max-len
 const url = pattern (string (), /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/);
 const ISOstring = pattern (string (), /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+/);
+const ISOdate = pattern (string (), /^\d{4}-[01]\d-[0-3]\d$/);
 
 export type MeetupOptions = Infer<typeof MeetupOptions>;
 const MeetupOptions = type ({
@@ -30,7 +31,15 @@ const MeetupOptions = type ({
    maxRsvp:      optional (number ()),
    rsvpDeadline: optional (ISOstring),
    duration:     optional (number ()),
-   subscription: optional (string ())
+   subscription: optional (string ()),
+
+   recurrence: optional (type ({
+      frequency: string (),
+      interval:  number (),
+      weekdays:  array (number ()),
+      endDate:   ISOdate,
+      timezone:  optional (string ())
+   }))
 });
 
 type ParseResult =
@@ -63,6 +72,24 @@ export function parse (opt: unknown) : ParseResult {
 
    if (opt.location_comments && opt.location_comments.length > 300)
       return Failed ("Location comments can only be 300 characters long");
+
+   if (opt.recurrence) {
+      const recurrence = opt.recurrence;
+      if (recurrence.frequency !== "weekly") return Failed ("Only weekly recurrence is currently supported");
+      if (!Number.isInteger (recurrence.interval) || recurrence.interval < 1 || recurrence.interval > 52)
+         return Failed ("Recurrence interval must be a whole number from 1 to 52");
+      if (!recurrence.weekdays.length || recurrence.weekdays.some (day => !Number.isInteger (day) || day < 1 || day > 7))
+         return Failed ("Recurrence weekdays must contain values from 1 (Monday) through 7 (Sunday)");
+
+      const zonedStart = recurrence.timezone
+         ? DateTime.fromISO (opt.date, { setZone: true }).setZone (recurrence.timezone)
+         : DateTime.fromISO (opt.date, { setZone: true });
+      const end = DateTime.fromISO (recurrence.endDate, recurrence.timezone ? { zone: recurrence.timezone } : {}).endOf ("day");
+      if (!zonedStart.isValid || !end.isValid) return Failed ("Recurrence timezone or end date is invalid");
+      if (end < zonedStart) return Failed ("Recurrence end date must be on or after the first meetup");
+      if (recurrence.timezone && !recurrence.weekdays.includes (zonedStart.weekday))
+         return Failed ("The selected weekdays must include the first meetup date");
+   }
 
    return { failed: false, ...opt };
 }

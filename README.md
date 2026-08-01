@@ -96,6 +96,8 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 | `ONBOARDING_ROLE_ID` | Role ID granted after a user completes onboarding | — |
 | `ONBOARDING_MIN_LENGTH` | Minimum intro message length required for onboarding | `50` |
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
+| `MEETUP_RECURRENCE_WINDOW_DAYS` | Number of days ahead to post recurring meetup occurrences | `21` |
+| `MEETUP_TIMEZONE` | IANA timezone used for recurring meetup schedules | `America/Chicago` |
 | `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored play`; threads inherit approval from a whitelisted parent channel (including all posts in a forum). Forum tags provide the available platforms. | `""` |
 | `COOLDOWN_USER_PING` | Per-user cooldown duration in seconds for mentioning roles | `60` |
 | `COOLDOWN_ROLE_PING` | Per-role cooldown duration in seconds before a role can be mentioned again | `7200` |
@@ -113,6 +115,8 @@ HTTP_PORT=3000
 HAPI_HOST=localhost
 MEETUP_FORM_URL=https://qczar.github.io/bhabot/
 MEETUP_API_URL=https://meetup.rochesterbored.com
+MEETUP_RECURRENCE_WINDOW_DAYS=21
+MEETUP_TIMEZONE=America/Chicago
 CHANNEL_ADMIN=111111111111111111
 CHANNEL_BOT_ADMIN=222222222222222222
 CHANNEL_BOT_LOG=333333333333333333
@@ -345,8 +349,8 @@ discussion thread from that post.
 | Subcommand | Options | Description |
 |---|---|---|
 | `create [options]` | `options` (optional YAML string) | With no options, open the web creator; with options, create a meetup in `CHANNEL_MEETUPS` |
-| `edit [options]` | `options` (optional YAML string) | With no options, open that meetup in the web editor; with options, update it inside its thread |
-| `cancel <reason>` | `reason` | Cancel a meetup — must be used inside its thread |
+| `edit [options] [scope]` | `options` (optional YAML string), `scope` (`occurrence` or `future`) | Update one occurrence or it and future occurrences inside its thread |
+| `cancel <reason> [scope]` | `reason`, `scope` (`occurrence` or `series`) | Cancel one occurrence or all future occurrences in its series |
 | `announce` | — | Ping all RSVPs — must be used inside the thread (organizer only) |
 | `help` | — | Show the meetup command reference |
 
@@ -372,18 +376,29 @@ endpoint to populate its role selector.
 **YAML options format** (passed to `create` / `edit`):
 ```yaml
 title: "Hike at Alum Rock"
-date: "2025-08-15T10:00:00"
+date: "2026-08-15T10:00:00.000-05:00"
 description: "Casual morning hike."
 category: outdoors
-location:
-  address: "Alum Rock Ave, San Jose, CA"
+location: "Alum Rock Ave, San Jose, CA"
 links:
   - label: "Trail Map"
     url: "https://example.com"
 maxRsvp: 20
-rsvpDeadline: "2025-08-14"
+rsvpDeadline: "2026-08-14T10:00:00.000-05:00"
 duration: 3
 ```
+
+One-off meetup YAML remains unchanged. For a recurring meetup, the web form adds this optional block:
+
+```yaml
+recurrence:
+  frequency: weekly
+  interval: 1
+  weekdays: [6]
+  endDate: "2026-12-19"
+```
+
+Weekdays use ISO numbering (`1` Monday through `7` Sunday). The original `date` is the first occurrence and its weekday must be selected. The bot applies the server's `MEETUP_TIMEZONE` internally. Recurring occurrences are posted only within `MEETUP_RECURRENCE_WINDOW_DAYS`; the organizer is automatically marked as attending each occurrence.
 
 ---
 

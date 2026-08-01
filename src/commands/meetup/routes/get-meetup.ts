@@ -2,6 +2,7 @@ import Boom from "@hapi/boom";
 import Hapi from "@hapi/hapi";
 
 import * as db from "../db/meetups";
+import * as seriesDb from "../db/meetup-series";
 
 function pick<T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
    // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,13 +25,21 @@ export const getMeetup = async (req: Hapi.Request) : Promise<unknown> => {
       return Boom.notFound (`Could not find meetup with id '${id}''`);
 
    // Omit these properties
-   return pick (meetup, 
+   const result = pick (meetup,
       "id",
       "title",
       "timestamp",
       "description",
       "category",
       "links",
-      "location"
+      "location",
+      "duration",
+      "maxRsvp",
+      "rsvpDeadline",
+      "subscription",
+      "seriesID"
    );
+   if (!meetup.seriesID) return result;
+   const series = await seriesDb.findOne ({ id: meetup.seriesID });
+   return { ...result, recurrence: series?.recurrence, seriesState: series?.state };
 };
