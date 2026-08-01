@@ -19,7 +19,7 @@ const envSchema = z.object ({
    ONBOARDING_MIN_LENGTH: z.coerce.number().default (50),
    REDDIT_SECRET: z.string (),
    SERVER_ID: z.string (),
-   MEETUP_FORM_URL: z.string ().default ("https://qczar.github.io/rbhabot_expanded/"),
+   MEETUP_FORM_URL: z.string ().default ("https://qczar.github.io/bhabot/"),
    MEETUP_API_URL: z.string ().default ("http://meetup.rochesterbored.com"),
    PING_WHITELIST_CHANNELS: z.string ().default (""),
    ALLOW_EVERYONE_PING: z.coerce.boolean().default(false),

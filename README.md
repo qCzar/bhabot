@@ -53,7 +53,7 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
 
 ```bash
 git clone <repo-url>
-cd rbhabot_expanded
+cd bhabot
 pnpm install
 ```
 
@@ -76,7 +76,7 @@ These variables configure application-wide infrastructure and cannot be changed 
 | `MONGO_URL` | MongoDB connection string (e.g. `mongodb://username:password@127.0.0.1:27017/sjbha?authSource=admin`) | — |
 | `HTTP_PORT` | Port for the internal Hapi HTTP server | — |
 | `HAPI_HOST` | Hostname for the Hapi server | — |
-| `MEETUP_FORM_URL` | Public URL for the meetup creation/edit form | `https://qczar.github.io/rbhabot_expanded/` |
+| `MEETUP_FORM_URL` | Public URL for the meetup creation/edit form | `https://qczar.github.io/bhabot/` |
 | `MEETUP_API_URL` | Public URL for meetup data and calendar routes | `http://meetup.rochesterbored.com` |
 | `NODE_ENV` | `development` or `production` | `development` |
 
@@ -111,7 +111,7 @@ SERVER_ID=987654321098765432
 MONGO_URL=mongodb://sjbha_user:secure_password@127.0.0.1:27017/sjbha?authSource=admin
 HTTP_PORT=3000
 HAPI_HOST=localhost
-MEETUP_FORM_URL=https://qczar.github.io/rbhabot_expanded/
+MEETUP_FORM_URL=https://qczar.github.io/bhabot/
 MEETUP_API_URL=http://meetup.rochesterbored.com
 CHANNEL_ADMIN=111111111111111111
 CHANNEL_BOT_ADMIN=222222222222222222
