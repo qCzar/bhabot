@@ -4,7 +4,6 @@ import * as Subscription from "../commands/subscribe/Subscription";
 import { interactionFailed } from "../errors";
 import { getSetting } from "../environment";
 import { formatActivityListMessages } from "./activity-list";
-import { isPingWhitelistedChannel } from "./ping-whitelist";
 
 const list = async (interaction: Discord.ChatInputCommandInteraction) => {
    if (!(interaction.member instanceof Discord.GuildMember) || !interaction.guild)
@@ -109,10 +108,20 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
    if (!name || !message)
       return interaction.reply({ content: "You must provide an activity name and a message", ephemeral: true });
 
+   const lowerName = name.toLowerCase();
+   const isSpecial = lowerName === "everyone" || lowerName === "here";
+
+   if (isSpecial) {
+      return interaction
+         .reply({
+            content: `@${lowerName} cannot be mentioned with this command.`,
+            ephemeral: true
+         })
+         .catch(interactionFailed);
+   }
+
    const member = interaction.member as Discord.GuildMember;
    const isAdmin = member?.permissions?.has(Discord.PermissionFlagsBits.ManageGuild) || member?.permissions?.has(Discord.PermissionFlagsBits.KickMembers);
-
-   const lowerName = name.toLowerCase();
    const now = Date.now();
 
    if (!isAdmin) {
@@ -129,28 +138,6 @@ const pingRole = async (interaction: Discord.ChatInputCommandInteraction) => {
          const remaining = Math.ceil((roleCooldownDuration - (now - lastRolePing)) / 1000 / 60);
          return interaction.reply({ content: `This role is on cooldown. Please wait ${remaining} minutes before it can be pinged again.`, ephemeral: true }).catch(interactionFailed);
       }
-   }
-
-   const isSpecial = lowerName === "everyone" || lowerName === "here";
-
-   if (isSpecial) {
-      const whitelistStr = getSetting(interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
-      const parentId = interaction.channel?.isThread() ? interaction.channel.parentId : null;
-      if (!isPingWhitelistedChannel(whitelistStr, interaction.channelId, parentId)) {
-         return interaction
-            .reply({ content: `You can only ping @${lowerName} in whitelisted channels.`, ephemeral: true })
-            .catch(interactionFailed);
-      }
-
-      userPingCooldowns.set(member.id, now);
-      rolePingCooldowns.set(lowerName, now);
-
-      return interaction
-         .reply({
-            content: `${message} - @${lowerName}`,
-            allowedMentions: { parse: ["everyone"] }
-         })
-         .catch(interactionFailed);
    }
 
    const collection = await Subscription.collection();
@@ -471,13 +458,6 @@ export const handleActivityAutocomplete = async (interaction: Discord.Autocomple
    const subsFromDb = await collection.find().toArray();
 
    const subs = subsFromDb.map(sub => ({ name: sub.name, value: sub.name }));
-
-   const whitelistStr = getSetting(interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
-   const parentId = interaction.channel?.isThread() ? interaction.channel.parentId : null;
-   if (isPingWhitelistedChannel(whitelistStr, interaction.channelId, parentId)) {
-      subs.push({ name: "everyone", value: "everyone" });
-      subs.push({ name: "here", value: "here" });
-   }
 
    const filtered = subs
       .filter(sub => sub.name.toLowerCase().includes(search))

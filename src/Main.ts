@@ -40,11 +40,20 @@ const registerSlashCommands = async() => {
    const { DISCORD_TOKEN, DISCORD_CLIENT_ID, SERVER_ID } = env;
 
    const rest = new REST ({ version: "9" }).setToken (DISCORD_TOKEN);
-   
-   return rest.put (
+
+   // Commands were previously registered to this guild. Clear that scope so
+   // legacy entries do not continue to appear alongside the global commands.
+   await rest.put (
+      Routes.applicationGuildCommands (DISCORD_CLIENT_ID, SERVER_ID),
+      { body: [] }
+   );
+
+   await rest.put (
       Routes.applicationCommands (DISCORD_CLIENT_ID),
       { body: interactions.flatMap (it => it.config) }
-   ).then (_ => { log.debug ("Slash Commands Registered"); });
+   );
+
+   log.debug ("Slash Commands Registered");
 };
 
 const makeDiscordClient = () => new Discord.Client ({
@@ -184,4 +193,3 @@ void async function main() {
    }
 
 } ();
-

@@ -20,6 +20,7 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
   - [/bored christmas](#bored-christmas)
   - [/bored define](#bored-define)
   - [/bored mention](#bored-mention)
+  - [/bored play](#bored-play)
   - [/bored pong](#bored-pong)
   - [/bored version](#bored-version)
   - [/bored activity (group)](#bored-activity-group)
@@ -94,7 +95,7 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 | `ONBOARDING_ROLE_ID` | Role ID granted after a user completes onboarding | — |
 | `ONBOARDING_MIN_LENGTH` | Minimum intro message length required for onboarding | `50` |
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
-| `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored mention everyone`; threads inherit approval from a whitelisted parent channel (including all posts in a forum) | `""` |
+| `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored play`; threads inherit approval from a whitelisted parent channel (including all posts in a forum). Forum tags provide the available platforms. | `""` |
 | `COOLDOWN_USER_PING` | Per-user cooldown duration in seconds for mentioning roles | `60` |
 | `COOLDOWN_ROLE_PING` | Per-role cooldown duration in seconds before a role can be mentioned again | `7200` |
 
@@ -287,7 +288,7 @@ Look up a word on Urban Dictionary. Posts the top definition as an embed. The pe
 
 ### /bored mention `<role>` `<message>`
 
-Ping an activity role with a message. Supports `everyone` and `here` in channels listed in `PING_WHITELIST_CHANNELS`.
+Ping a registered activity role with a message. This command cannot mention `everyone` or `here`.
 
 | Option | Required | Description |
 |---|---|---|
@@ -295,6 +296,17 @@ Ping an activity role with a message. Supports `everyone` and `here` in channels
 | `message` | ✅ | Message to send with the ping |
 
 > **Note:** Non-admin users are subject to a per-user cooldown (`COOLDOWN_USER_PING`, default 60s) and a per-role cooldown (`COOLDOWN_ROLE_PING`, default 2 hours) before the same role can be pinged again. Users with Manage Server or Kick Members permissions bypass these cooldowns.
+
+---
+
+### /bored play `<platform>` `<message>`
+
+Announce a game session in a channel listed in `PING_WHITELIST_CHANNELS`, or in a thread under a whitelisted forum. Platforms are drawn from the tags configured on whitelisted forum channels. The bot posts the announcement as `PLATFORM - Message - @everyone`.
+
+| Option | Required | Description |
+|---|---|---|
+| `platform` | ✅ | Forum tag representing the platform (autocomplete) |
+| `message` | ✅ | Announcement message |
 
 ---
 

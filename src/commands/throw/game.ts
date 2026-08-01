@@ -79,8 +79,7 @@ export const play = async (message: Discord.Message, hand: string) : Promise<voi
          await message.reply (`${handEmoji (hand)} ✅ ${handEmoji (bot)}\nStreak: **${update.currentStreak}** • Best: **${update.bestStreak}** ${prString}`);
       
          if (currentStreak > currentRecord) {
-            const announcement = await message.reply (`🎖️ <@${message.author.id}> just set a new high score of **${currentStreak}**!`);
-            await announcement.pin ();
+            await message.reply (`🎖️ <@${message.author.id}> just set a new high score of **${currentStreak}**!`);
          }
 
          return;

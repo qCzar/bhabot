@@ -1,8 +1,15 @@
-# Builder
-FROM node:16 as builder
+FROM node:20-slim
 
 WORKDIR /app/bot
-COPY ./dist/bot.js ./dist/bot.js
-COPY package.json .
 
-ENTRYPOINT npm start
+RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY tsconfig.json ./
+COPY src ./src
+
+ENV NODE_ENV=production
+
+CMD ["pnpm", "start"]

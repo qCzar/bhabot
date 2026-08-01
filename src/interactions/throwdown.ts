@@ -75,11 +75,7 @@ const play = async (interaction: ChatInputCommandInteraction) : Promise<void> =>
          await interaction.reply (`${handEmoji (hand)} ✅ ${handEmoji (bot)}\nStreak: **${update.currentStreak}** • Best: **${update.bestStreak}** ${prString}`);
 
          if (currentStreak > currentRecord) {
-            const announcement = await interaction.followUp (`🎖️ <@${interaction.user.id}> just set a new high score of **${currentStreak}**!`);
-
-            if (announcement.pinnable) {
-               await announcement.pin ();
-            }
+            await interaction.followUp (`🎖️ <@${interaction.user.id}> just set a new high score of **${currentStreak}**!`);
          }
 
          return;

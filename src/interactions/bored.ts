@@ -9,6 +9,7 @@ import {
    handleMentionSubcommand, 
    handleActivityAutocomplete 
 } from "./activity";
+import { handlePlayAutocomplete, handlePlaySubcommand, playSubcommandConfig } from "./play";
 import { christmasSubcommandConfig, handleChristmasSubcommand } from "./christmas";
 import { pongSubcommandConfig, handlePongSubcommand } from "./pong";
 import { tldrSubcommandGroupConfig, handleTldrSubcommand } from "./tldr";
@@ -28,6 +29,7 @@ const buildCommand = () => {
    const subcommands = [
       defineSubcommandConfig,
       mentionSubcommandConfig,
+      playSubcommandConfig,
       christmasSubcommandConfig,
       pongSubcommandConfig,
       versionSubcommandConfig,
@@ -158,6 +160,8 @@ export const bored: interaction = {
             return handleDefineSubcommand(interaction);
          case "mention":
             return handleMentionSubcommand(interaction);
+         case "play":
+            return handlePlaySubcommand(interaction);
          case "christmas":
             return handleChristmasSubcommand(interaction);
          case "pong":
@@ -186,6 +190,10 @@ export const bored: interaction = {
 
       if (subcommand === "mention") {
          return handleActivityAutocomplete(interaction);
+      }
+
+      if (subcommand === "play") {
+         return handlePlayAutocomplete(interaction);
       }
    }
 };
