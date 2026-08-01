@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modeBadge) modeBadge.textContent = `Mode: Editing Meetup #${meetupId}`;
     mainHeaderTitle.textContent = 'Edit Meetup';
 
-    fetch(`https://comicidiot.com/meetup/${meetupId}`)
+    fetch(`http://meetup.rochesterbored.com/meetup/${encodeURIComponent(meetupId)}`)
       .then(res => res.json())
       .then(data => {
         if (!data) return;
@@ -453,7 +453,9 @@ document.addEventListener('DOMContentLoaded', () => {
       yamlBody = objectToYAML(meetupObj);
     }
 
-    const commandHead = isEditMode ? `!meetup edit` : `!meetup create`;
+    const commandHead = isEditMode
+      ? `/bored meetup edit options:`
+      : `/bored meetup create options:`;
     return `${commandHead}\n${yamlBody.trim()}`;
   }
 
@@ -464,7 +466,9 @@ document.addEventListener('DOMContentLoaded', () => {
       pageCommandPreview.textContent = cmd;
       commandPreview.textContent = cmd;
     } else {
-      const head = isEditMode ? `!meetup edit` : `!meetup create`;
+      const head = isEditMode
+        ? `/bored meetup edit options:`
+        : `/bored meetup create options:`;
       const fallbackText = `${head}\ntitle: ${titleInput.value.trim() || 'Your Meetup Title'}\ndate: '${toISOStringWithTZ(dateInput.value) || 'YYYY-MM-DDTHH:mm:ssZ'}'`;
       pageCommandPreview.textContent = fallbackText;
       commandPreview.textContent = fallbackText;
