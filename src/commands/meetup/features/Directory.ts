@@ -1,7 +1,7 @@
 import * as Discord from "discord.js";
 import { DateTime } from "luxon";
 import * as Settings from "../../../deprecating/settings";
-import { env } from "../../../environment";
+import { env, getSetting } from "../../../environment";
 import { logger, runWithLoggingContext } from "../../../logger";
 import * as Format from "../../../deprecating/Format";
 
@@ -11,8 +11,14 @@ const log = logger ("meetup:directory");
 const settingsKey = "meetup/directory-ids";
 const max_description_length = 120;
 
-const intro = `
-**Welcome to <#${env.CHANNEL_MEETUPS_DIR}>!**
+const directoryChannelId = (): string =>
+   getSetting (env.SERVER_ID, "CHANNEL_MEETUPS_DIR");
+
+const meetupsChannelId = (): string =>
+   getSetting (env.SERVER_ID, "CHANNEL_MEETUPS");
+
+const intro = (): string => `
+**Welcome to <#${directoryChannelId ()}>!**
 
 This channel lists a short overview of all the upcoming meetups. 
 Full descriptions and meetup discussions occur inside of threads, just click on a link below to get taken to that meetup's thread.
@@ -24,11 +30,11 @@ Meetups on this server are community driven and can be created by any member. We
 Head over to the meetup thread and click the RSVP button
 
 **How do I create a meetup?**
-Run \`/bored meetup create\` to receive a link to the meetup form. Submit the generated options in <#${env.CHANNEL_MEETUPS}> to create it.
+Run \`/bored meetup create\` to receive a link to the meetup form. Submit the generated options in <#${meetupsChannelId ()}> to create it.
 `;
 
 const getDirectoryChannel = async (client: Discord.Client) => {
-   const channel = await client.channels.fetch (env.CHANNEL_MEETUPS_DIR);
+   const channel = await client.channels.fetch (directoryChannelId ());
 
    if (channel?.type !== Discord.ChannelType.GuildText) {
       throw new Error ("Could not fetch meetups_directory channel");
@@ -196,7 +202,7 @@ export const refresh = async (client: Discord.Client, repost = false): Promise<v
       // Post introduction message
       const introId = await postOrEdit (
          client,
-         { content: intro, embeds: [] },
+         { content: intro (), embeds: [] },
          messageIds.shift ()
       ).catch (_ => null);
 
