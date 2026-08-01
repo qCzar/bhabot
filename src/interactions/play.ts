@@ -3,14 +3,21 @@ import * as Interaction from "../interaction";
 import { interactionFailed } from "../errors";
 import { getSetting } from "../environment";
 import { getWhitelistedChannelIds, isPingWhitelistedChannel } from "./ping-whitelist";
+import { getCachedOrFetchedChannel } from "./channel-cache";
 import {
+   getAppliedPlatforms,
    getPlatformAutocompleteChoices,
    getPlatformChoices,
    Platform,
    resolvePlatform
 } from "./play-platforms";
 
-export { getPlatformAutocompleteChoices, getPlatformChoices, resolvePlatform } from "./play-platforms";
+export {
+   getAppliedPlatforms,
+   getPlatformAutocompleteChoices,
+   getPlatformChoices,
+   resolvePlatform
+} from "./play-platforms";
 
 export const playSubcommandConfig: Interaction.option = {
    type: Interaction.optionType.sub_command,
@@ -37,9 +44,23 @@ async function getWhitelistedPlatforms (
    interaction: Discord.ChatInputCommandInteraction | Discord.AutocompleteInteraction
 ): Promise<Platform[]> {
    const whitelistRaw = getSetting (interaction.guildId, "PING_WHITELIST_CHANNELS") || "";
+   const currentChannel = interaction.channel;
+
+   if (currentChannel?.isThread ()) {
+      const parentId = currentChannel.parentId;
+      if (!isPingWhitelistedChannel (whitelistRaw, currentChannel.id, parentId)) return [];
+
+      if (parentId) {
+         const parent = await getCachedOrFetchedChannel (interaction.client.channels, parentId);
+         if (parent?.type === Discord.ChannelType.GuildForum) {
+            return getAppliedPlatforms (parent.availableTags, currentChannel.appliedTags);
+         }
+      }
+   }
+
    const channelIds = getWhitelistedChannelIds (whitelistRaw);
    const channels = await Promise.all (
-      channelIds.map (id => interaction.client.channels.fetch (id).catch (() => null))
+      channelIds.map (id => getCachedOrFetchedChannel (interaction.client.channels, id))
    );
    const forums = channels.flatMap (channel => {
       if (!channel || channel.type !== Discord.ChannelType.GuildForum) return [];
@@ -67,7 +88,7 @@ export async function handlePlaySubcommand (interaction: Discord.ChatInputComman
 
    const platform = resolvePlatform (await getWhitelistedPlatforms (interaction), platformId);
    if (!platform) {
-      await interaction.reply ({ content: "Please choose a platform from the available forum tags.", ephemeral: true }).catch (interactionFailed);
+      await interaction.reply ({ content: "Please choose a platform tag applied to this channel.", ephemeral: true }).catch (interactionFailed);
       return;
    }
 

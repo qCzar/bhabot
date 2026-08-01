@@ -22,6 +22,14 @@ export function getPlatformChoices (
    return [...new Map (platforms.map (platform => [platform.id, platform])).values ()];
 }
 
+export function getAppliedPlatforms (
+   availableTags: ReadonlyArray<Platform>,
+   appliedTagIds: ReadonlyArray<string>
+): Platform[] {
+   const appliedTags = new Set (appliedTagIds);
+   return availableTags.filter (platform => appliedTags.has (platform.id));
+}
+
 export function getPlatformAutocompleteChoices (
    platforms: ReadonlyArray<Platform>,
    searchRaw: string

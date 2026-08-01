@@ -1,4 +1,30 @@
-import { getPlatformAutocompleteChoices, getPlatformChoices, resolvePlatform } from "./play-platforms";
+import {
+   getAppliedPlatforms,
+   getPlatformAutocompleteChoices,
+   getPlatformChoices,
+   resolvePlatform
+} from "./play-platforms";
+import { getCachedOrFetchedChannel } from "./channel-cache";
+
+describe ("getCachedOrFetchedChannel", () => {
+   it ("returns a cached channel without calling the API", async () => {
+      const cachedChannel = { id: "forum" };
+      const fetch = jest.fn (async () => ({ id: "fetched" }));
+      const channels = { cache: { get: () => cachedChannel }, fetch };
+
+      await expect (getCachedOrFetchedChannel (channels, "forum")).resolves.toBe (cachedChannel);
+      expect (fetch).not.toHaveBeenCalled ();
+   });
+
+   it ("fetches the channel when it is not cached", async () => {
+      const fetchedChannel = { id: "forum" };
+      const fetch = jest.fn (async () => fetchedChannel);
+      const channels = { cache: { get: () => undefined }, fetch };
+
+      await expect (getCachedOrFetchedChannel (channels, "forum")).resolves.toBe (fetchedChannel);
+      expect (fetch).toHaveBeenCalledWith ("forum");
+   });
+});
 
 describe ("getPlatformChoices", () => {
    const forums = [
@@ -55,6 +81,25 @@ describe ("getPlatformAutocompleteChoices", () => {
       }));
 
       expect (getPlatformAutocompleteChoices (manyPlatforms, "")).toHaveLength (25);
+   });
+});
+
+describe ("getAppliedPlatforms", () => {
+   const availableTags = [
+      { id: "pc", name: "PC" },
+      { id: "switch", name: "Nintendo Switch" },
+      { id: "mobile", name: "Mobile" }
+   ];
+
+   it ("returns only tags selected on the forum thread", () => {
+      expect (getAppliedPlatforms (availableTags, ["pc", "mobile"])).toEqual ([
+         { id: "pc", name: "PC" },
+         { id: "mobile", name: "Mobile" }
+      ]);
+   });
+
+   it ("returns no platforms when the forum thread has no selected tags", () => {
+      expect (getAppliedPlatforms (availableTags, [])).toEqual ([]);
    });
 });
 
