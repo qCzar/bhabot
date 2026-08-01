@@ -24,7 +24,7 @@ Meetups on this server are community driven and can be created by any member. We
 Head over to the meetup thread and click the RSVP button
 
 **How do I create a meetup?**
-Head over to <#${env.CHANNEL_MEETUPS}> and run the \`!meetup\` command, and you will be given a link to a form to fill out. 
+Run \`/bored meetup create\` to receive a link to the meetup form. Submit the generated options in <#${env.CHANNEL_MEETUPS}> to create it.
 `;
 
 const getDirectoryChannel = async (client: Discord.Client) => {

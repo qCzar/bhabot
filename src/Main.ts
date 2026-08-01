@@ -166,7 +166,6 @@ void async function main() {
    });
 
    world.discord.on (Discord.Events.MessageCreate, message => {
-      if (!message.author.bot) Meetup.command (message);
       handleMessageCreate (message, world.discord);
       handleOnboardingMessageCreate (message);
    });

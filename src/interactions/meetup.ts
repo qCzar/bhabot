@@ -9,7 +9,8 @@ import * as M from "../commands/meetup/common/Meetup";
 import { parse } from "../commands/meetup/common/MeetupOptions";
 import { validateSubscriptionRole } from "../commands/meetup/common/ValidateRole";
 import { render, refresh } from "../commands/meetup/features/RenderAnnouncement";
-import { getSetting } from "../environment";
+import { env, getSetting } from "../environment";
+import { meetupCreatorMessage } from "./meetup-creator";
 
 const { commandType, optionType } = Interaction;
 
@@ -25,8 +26,8 @@ export const meetupSubcommandGroupConfig: Interaction.option = {
          options: [{
             type: optionType.string,
             name: "options",
-            description: "Paste the YAML from the meetup web UI",
-            required: true
+            description: "Paste the YAML from the meetup web UI (omit to open the creator)",
+            required: false
          }]
       },
       {
@@ -106,6 +107,15 @@ export const handleMeetupAdminSubcommand = async (interaction: Discord.ChatInput
 
 
 async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
+   const optionsStr = interaction.options.getString ("options");
+
+   if (!optionsStr) {
+      return interaction.reply ({
+         content:   meetupCreatorMessage (env.MEETUP_FORM_URL),
+         ephemeral: true
+      });
+   }
+
    const channelMeetups = getSetting(interaction.guildId, "CHANNEL_MEETUPS");
    if (interaction.channelId !== channelMeetups) {
       return interaction.reply ({ content: "⚠️ Meetups can only be created in the meetups channel.", ephemeral: true });
@@ -116,8 +126,6 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
    if (!channel || channel.type !== Discord.ChannelType.GuildText) {
       return interaction.reply ({ content: "⚠️ This command must be used in a text channel.", ephemeral: true });
    }
-
-   const optionsStr = interaction.options.getString ("options", true);
 
    let parsed: unknown;
    try { parsed = YAML.parse (optionsStr); }
@@ -325,12 +333,13 @@ async function handleHelp (interaction: Discord.ChatInputCommandInteraction) {
       embeds: [{
          title:       "📅 Meetup Commands",
          description: [
-            "`/meetup create <options>` — Create a meetup from YAML",
-            "`/meetup edit <options>` — Edit a meetup (in thread)",
-            "`/meetup cancel <reason>` — Cancel a meetup (in thread)",
-            "`/meetup announce` — Ping all RSVPs (in thread)",
-            "`/meetup help` — Show this help",
-            "`/meetup admin refresh` — Refresh all announcements"
+            "`/bored meetup create` — Open the meetup creator",
+            "`/bored meetup create <options>` — Create a meetup from generated YAML",
+            "`/bored meetup edit <options>` — Edit a meetup (in thread)",
+            "`/bored meetup cancel <reason>` — Cancel a meetup (in thread)",
+            "`/bored meetup announce` — Ping all RSVPs (in thread)",
+            "`/bored meetup help` — Show this help",
+            "`/boredbot meetup refresh` — Refresh all announcements"
          ].join ("\n"),
          color: 0x5865F2
       }],

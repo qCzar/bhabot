@@ -76,7 +76,8 @@ These variables configure application-wide infrastructure and cannot be changed 
 | `MONGO_URL` | MongoDB connection string (e.g. `mongodb://username:password@127.0.0.1:27017/sjbha?authSource=admin`) | — |
 | `HTTP_PORT` | Port for the internal Hapi HTTP server | — |
 | `HAPI_HOST` | Hostname for the Hapi server | — |
-| `UI_HOSTNAME` | Public URL for any linked web UIs | — |
+| `MEETUP_FORM_URL` | Public URL for the meetup creation/edit form | `https://qczar.github.io/rbhabot_expanded/` |
+| `MEETUP_API_URL` | Public URL for meetup data and calendar routes | `http://meetup.rochesterbored.com` |
 | `NODE_ENV` | `development` or `production` | `development` |
 
 #### Per-Server Configurable Settings (`.env` or `/boredbot settings`)
@@ -110,7 +111,8 @@ SERVER_ID=987654321098765432
 MONGO_URL=mongodb://sjbha_user:secure_password@127.0.0.1:27017/sjbha?authSource=admin
 HTTP_PORT=3000
 HAPI_HOST=localhost
-UI_HOSTNAME=https://your-ui-host.example.com
+MEETUP_FORM_URL=https://qczar.github.io/rbhabot_expanded/
+MEETUP_API_URL=http://meetup.rochesterbored.com
 CHANNEL_ADMIN=111111111111111111
 CHANNEL_BOT_ADMIN=222222222222222222
 CHANNEL_BOT_LOG=333333333333333333
@@ -340,16 +342,20 @@ Create and manage community meetups. Each meetup gets its own discussion thread 
 
 | Subcommand | Options | Description |
 |---|---|---|
-| `create <options>` | `options` (YAML string) | Create a new meetup — must be used in `CHANNEL_MEETUPS` |
+| `create [options]` | `options` (optional YAML string) | With no options, open the web creator; with options, create a meetup in `CHANNEL_MEETUPS` |
 | `edit <options>` | `options` (YAML string) | Edit an existing meetup — must be used inside its thread |
 | `cancel <reason>` | `reason` | Cancel a meetup — must be used inside its thread |
 | `announce` | — | Ping all RSVPs — must be used inside the thread (organizer only) |
 | `help` | — | Show the meetup command reference |
 
 **Permissions:**
-- `create` — any member (in `CHANNEL_MEETUPS` only)
+- `create` — any member; submitting generated options is restricted to `CHANNEL_MEETUPS`
 - `edit` / `cancel` — organizer or a user with Kick Members permission
 - `announce` — organizer only
+
+Run `/bored meetup create` without options to receive a private link to
+`MEETUP_FORM_URL`. Fill out the web form, then paste its generated YAML into
+the `options` field of the same command to create the meetup.
 
 **YAML options format** (passed to `create` / `edit`):
 ```yaml

@@ -13,7 +13,8 @@ import { DateTime } from "luxon";
 import { MemberList } from "../../../deprecating/MemberList";
 import * as Format from "../../../deprecating/Format";
 import * as db from "../db/meetups";
-import { getSetting } from "../../../environment";
+import { env } from "../../../environment";
+import { meetupCalendarUrl } from "../../../interactions/meetup-creator";
 
 const max_name_count = 80;
 
@@ -122,7 +123,7 @@ function Announcement(meetup: db.Meetup, rsvps?: string[], maybes?: string[]): E
       name:  "Links", 
       value: [
          ...meetup.links.map (l => linkify (l.url, l.label)),
-         linkify (`${getSetting(null, "UI_HOSTNAME")}/meetup/${meetup.id}/gcal`, "Add to Google Calendar"),
+         linkify (meetupCalendarUrl (env.MEETUP_API_URL, meetup.id), "Add to Google Calendar"),
       ].join ("\n")
    });
 
