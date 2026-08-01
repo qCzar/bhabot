@@ -343,7 +343,7 @@ Create and manage community meetups. Each meetup gets its own discussion thread 
 | Subcommand | Options | Description |
 |---|---|---|
 | `create [options]` | `options` (optional YAML string) | With no options, open the web creator; with options, create a meetup in `CHANNEL_MEETUPS` |
-| `edit <options>` | `options` (YAML string) | Edit an existing meetup — must be used inside its thread |
+| `edit [options]` | `options` (optional YAML string) | With no options, open that meetup in the web editor; with options, update it inside its thread |
 | `cancel <reason>` | `reason` | Cancel a meetup — must be used inside its thread |
 | `announce` | — | Ping all RSVPs — must be used inside the thread (organizer only) |
 | `help` | — | Show the meetup command reference |
@@ -356,6 +356,10 @@ Create and manage community meetups. Each meetup gets its own discussion thread 
 Run `/bored meetup create` without options to receive a private link to
 `MEETUP_FORM_URL`. Fill out the web form, then paste its generated YAML into
 the `options` field of the same command to create the meetup.
+
+Run `/bored meetup edit` without options inside a meetup thread to receive a
+private editor link containing that meetup's ID. After editing the form, paste
+its generated YAML into the `options` field of the same command in the thread.
 
 **YAML options format** (passed to `create` / `edit`):
 ```yaml

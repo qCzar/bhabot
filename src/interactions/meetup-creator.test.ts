@@ -2,6 +2,7 @@ import {
    meetupCalendarUrl,
    meetupCreatorMessage,
    meetupCreatorUrl,
+   meetupEditMessage,
    meetupEditUrl
 } from "./meetup-creator";
 
@@ -27,5 +28,12 @@ describe ("meetup creator link", () => {
          .toBe ("https://qczar.github.io/bhabot/#meetup%20id");
       expect (meetupCalendarUrl ("http://meetup.rochesterbored.com", "meetup id"))
          .toBe ("http://meetup.rochesterbored.com/meetup/meetup%20id/gcal");
+   });
+
+   it ("tells the user how to submit edits for the selected meetup", () => {
+      const message = meetupEditMessage ("https://qczar.github.io/bhabot/", "meetup id");
+
+      expect (message).toContain ("https://qczar.github.io/bhabot/#meetup%20id");
+      expect (message).toContain ("/bored meetup edit options:");
    });
 });

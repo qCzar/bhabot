@@ -10,7 +10,7 @@ import { parse } from "../commands/meetup/common/MeetupOptions";
 import { validateSubscriptionRole } from "../commands/meetup/common/ValidateRole";
 import { render, refresh } from "../commands/meetup/features/RenderAnnouncement";
 import { env, getSetting } from "../environment";
-import { meetupCreatorMessage } from "./meetup-creator";
+import { meetupCreatorMessage, meetupEditMessage } from "./meetup-creator";
 
 const { commandType, optionType } = Interaction;
 
@@ -37,8 +37,8 @@ export const meetupSubcommandGroupConfig: Interaction.option = {
          options: [{
             type: optionType.string,
             name: "options",
-            description: "Paste the updated YAML from the meetup web UI",
-            required: true
+            description: "Paste updated YAML (omit to open this meetup in the editor)",
+            required: false
          }]
       },
       {
@@ -212,7 +212,14 @@ async function handleEdit (interaction: Discord.ChatInputCommandInteraction) {
       return interaction.reply ({ content: "⚠️ Only the organizer or a moderator can edit this meetup.", ephemeral: true });
    }
 
-   const optionsStr = interaction.options.getString ("options", true);
+   const optionsStr = interaction.options.getString ("options");
+
+   if (!optionsStr) {
+      return interaction.reply ({
+         content:   meetupEditMessage (env.MEETUP_FORM_URL, meetup.id),
+         ephemeral: true
+      });
+   }
 
    let parsed: unknown;
    try { parsed = YAML.parse (optionsStr); }
@@ -335,7 +342,8 @@ async function handleHelp (interaction: Discord.ChatInputCommandInteraction) {
          description: [
             "`/bored meetup create` — Open the meetup creator",
             "`/bored meetup create <options>` — Create a meetup from generated YAML",
-            "`/bored meetup edit <options>` — Edit a meetup (in thread)",
+            "`/bored meetup edit` — Open this meetup in the online editor",
+            "`/bored meetup edit <options>` — Apply generated updates (in thread)",
             "`/bored meetup cancel <reason>` — Cancel a meetup (in thread)",
             "`/bored meetup announce` — Ping all RSVPs (in thread)",
             "`/bored meetup help` — Show this help",
