@@ -350,13 +350,14 @@ discussion thread from that post.
 |---|---|---|
 | `create [options]` | `options` (optional YAML string) | With no options, open the web creator; with options, create a meetup in `CHANNEL_MEETUPS` |
 | `edit [options] [scope]` | `options` (optional YAML string), `scope` (`occurrence` or `future`) | Update one occurrence or it and future occurrences inside its thread |
+| `transfer <user> [scope]` | `user` (attendee mention), `scope` (`occurrence` or `future`) | Transfer the meetup to another attendee inside its thread |
 | `cancel <reason> [scope]` | `reason`, `scope` (`occurrence` or `series`) | Cancel one occurrence or all future occurrences in its series |
 | `announce` | — | Ping all RSVPs — must be used inside the thread (organizer only) |
 | `help` | — | Show the meetup command reference |
 
 **Permissions:**
 - `create` — any member; submitting generated options is restricted to `CHANNEL_MEETUPS`
-- `edit` / `cancel` — organizer or a user with Kick Members permission
+- `edit` / `cancel` / `transfer` — organizer or a user with Kick Members permission
 - `announce` — organizer only
 
 Run `/bored meetup create` without options to receive a private link to

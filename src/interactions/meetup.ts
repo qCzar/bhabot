@@ -14,6 +14,7 @@ import { createOccurrence } from "../commands/meetup/features/CreateOccurrence";
 import { generateSeries, reconcileSeries } from "../commands/meetup/features/GenerateRecurringMeetups";
 import { env, getSetting } from "../environment";
 import { meetupCreatorMessage, meetupEditMessage } from "./meetup-creator";
+import { canTransferMeetup, validateTransferTarget } from "./meetup-transfer";
 
 const { commandType, optionType } = Interaction;
 
@@ -51,6 +52,26 @@ export const meetupSubcommandGroupConfig: Interaction.option = {
             name: "options",
             description: "Paste updated YAML (omit to open this meetup in the editor)",
             required: false
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "transfer",
+         description: "Transfer the meetup to another attendee (use in meetup thread)",
+         options: [{
+            type: optionType.user,
+            name: "user",
+            description: "The attendee to transfer the meetup to",
+            required: true
+         }, {
+            type: optionType.string,
+            name: "scope",
+            description: "Which recurring meetups to transfer",
+            required: false,
+            choices: [
+               { name: "This occurrence only", value: "occurrence" },
+               { name: "This and future occurrences", value: "future" }
+            ]
          }]
       },
       {
@@ -104,6 +125,8 @@ export const handleMeetupSubcommand = async (interaction: Discord.ChatInputComma
          return handleCreate (interaction);
       case "edit":
          return handleEdit (interaction);
+      case "transfer":
+         return handleTransfer (interaction);
       case "cancel":
          return handleCancel (interaction);
       case "announce":
@@ -365,6 +388,105 @@ async function handleEdit (interaction: Discord.ChatInputCommandInteraction) {
 }
 
 
+async function handleTransfer (interaction: Discord.ChatInputCommandInteraction) {
+   const channel = interaction.channel;
+
+   if (!channel?.isThread ()) {
+      return interaction.reply ({ content: "⚠️ This command must be used inside a meetup thread.", ephemeral: true });
+   }
+
+   const meetup = await db.findOne ({ threadID: channel.id });
+
+   if (!meetup) {
+      return interaction.reply ({ content: "⚠️ No meetup found for this thread.", ephemeral: true });
+   }
+
+   const isMod = interaction.memberPermissions?.has (Discord.PermissionFlagsBits.KickMembers) ?? false;
+   if (!canTransferMeetup (meetup, interaction.user.id, isMod)) {
+      return interaction.reply ({ content: "⚠️ Only the organizer or a moderator can transfer this meetup.", ephemeral: true });
+   }
+
+   const targetUser = interaction.options.getUser ("user", true);
+   const validation = validateTransferTarget (meetup, targetUser);
+   if (!validation.valid) {
+      return interaction.reply ({ content: validation.message, ephemeral: true });
+   }
+
+   const scope = interaction.options.getString ("scope") ?? "occurrence";
+
+   if (scope === "future" && !meetup.seriesID) {
+      return interaction.reply ({ content: "⚠️ This meetup is not part of a recurring series.", ephemeral: true });
+   }
+
+   if (scope === "future" && meetup.seriesID) {
+      const series = await seriesDb.findOne ({ id: meetup.seriesID });
+      if (!series) return interaction.reply ({ content: "⚠️ The recurring series could not be found.", ephemeral: true });
+
+      await seriesDb.update ({
+         ...series,
+         organizerID: targetUser.id
+      });
+
+      const future = await db.find ({
+         seriesID: meetup.seriesID,
+         timestamp: { $gte: meetup.timestamp },
+         "state.type": "Live"
+      });
+
+      for (const occurrence of future) {
+         const rsvps = occurrence.rsvps.includes (targetUser.id)
+            ? occurrence.rsvps
+            : [...occurrence.rsvps, targetUser.id];
+         const maybes = occurrence.maybes.filter (id => id !== targetUser.id);
+         const overrides = new Set (occurrence.overrides ?? []);
+         overrides.delete ("organizerID");
+
+         const updatedOccurrence: db.Meetup = {
+            ...occurrence,
+            organizerID: targetUser.id,
+            rsvps,
+            maybes,
+            overrides: [...overrides]
+         };
+
+         await db.update (updatedOccurrence);
+         const occurrenceChannel = await interaction.client.channels.fetch (occurrence.threadID).catch (() => undefined);
+         if (occurrenceChannel?.isThread ()) {
+            await occurrenceChannel.members.add (targetUser.id).catch (() => undefined);
+         }
+      }
+
+      return interaction.reply ({
+         embeds: [{
+            title:       "🤝 Meetup Series Transferred",
+            description: `**${meetup.title}** and future occurrences have been transferred to <@${targetUser.id}>.`,
+            color:       0x57F287
+         }]
+      });
+   }
+
+   const updated: db.Meetup = {
+      ...meetup,
+      organizerID: targetUser.id
+   };
+
+   if (meetup.seriesID) {
+      updated.overrides = [...new Set ([...(meetup.overrides ?? []), "organizerID"])];
+   }
+
+   await db.update (updated);
+   await channel.members.add (targetUser.id).catch (() => undefined);
+
+   return interaction.reply ({
+      embeds: [{
+         title:       "🤝 Meetup Transferred",
+         description: `**${meetup.title}** has been transferred to <@${targetUser.id}>.`,
+         color:       0x57F287
+      }]
+   });
+}
+
+
 async function handleCancel (interaction: Discord.ChatInputCommandInteraction) {
    const channel = interaction.channel;
 
@@ -475,6 +597,7 @@ async function handleHelp (interaction: Discord.ChatInputCommandInteraction) {
             "`/bored meetup create <options>` — Create a meetup from generated YAML",
             "`/bored meetup edit` — Open this meetup in the online editor",
             "`/bored meetup edit <options> [scope]` — Update this occurrence or this and future occurrences",
+            "`/bored meetup transfer <user> [scope]` — Transfer the meetup to another attendee",
             "`/bored meetup cancel <reason> [scope]` — Cancel this occurrence or its recurring series",
             "`/bored meetup announce` — Ping all RSVPs (in thread)",
             "`/bored meetup help` — Show this help",

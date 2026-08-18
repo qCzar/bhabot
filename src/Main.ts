@@ -16,6 +16,7 @@ import { logger } from "./logger";
 import { just, tap } from "./prelude";
 import { handleMessageCreate, initializeMultipost } from "./features/multipost";
 import { handleOnboardingMemberAdd, handleOnboardingMessageCreate, handleOnboardingMessageUpdate } from "./features/onboarding";
+import { handleGuildBanAdd, handleGuildMemberRemove, handleMessageDelete } from "./features/moderation-logging";
 
 import * as Legacy from "./deprecating/legacy_instance";
 import * as Meetup from "./commands/meetup/RegisterMeetup";
@@ -64,7 +65,8 @@ const makeDiscordClient = () => new Discord.Client ({
       Discord.GatewayIntentBits.GuildMessageReactions,
       Discord.GatewayIntentBits.GuildMembers,
       Discord.GatewayIntentBits.DirectMessages,
-      Discord.GatewayIntentBits.MessageContent
+      Discord.GatewayIntentBits.MessageContent,
+      Discord.GatewayIntentBits.GuildModeration
    ],
    partials: [
       Discord.Partials.Message,
@@ -182,6 +184,18 @@ void async function main() {
 
    world.discord.on (Discord.Events.GuildMemberAdd, member => {
       handleOnboardingMemberAdd (member as Discord.GuildMember);
+   });
+
+   world.discord.on (Discord.Events.GuildBanAdd, ban => {
+      handleGuildBanAdd (ban);
+   });
+
+   world.discord.on (Discord.Events.GuildMemberRemove, member => {
+      handleGuildMemberRemove (member);
+   });
+
+   world.discord.on (Discord.Events.MessageDelete, message => {
+      handleMessageDelete (message);
    });
 
    if (env.NODE_ENV === "production") {

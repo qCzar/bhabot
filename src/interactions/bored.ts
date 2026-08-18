@@ -18,6 +18,7 @@ import { throwdownSubcommandGroupConfig, handleThrowdownSubcommand } from "./thr
 import { meetupSubcommandGroupConfig, handleMeetupSubcommand } from "./meetup";
 import { changelogSubcommandConfig, handleChangelogSubcommand } from "./changelog";
 import { banSubcommandConfig, handleBanSubcommand } from "./ban";
+import { reportSubcommandConfig, handleReportSubcommand } from "./report";
 
 
 const buildCommand = () => {
@@ -34,7 +35,8 @@ const buildCommand = () => {
       pongSubcommandConfig,
       versionSubcommandConfig,
       changelogSubcommandConfig,
-      banSubcommandConfig
+      banSubcommandConfig,
+      reportSubcommandConfig
    ];
 
    for (const sub of subcommands) {
@@ -172,6 +174,8 @@ export const bored: interaction = {
             return handleChangelogSubcommand(interaction);
          case "ban":
             return handleBanSubcommand(interaction);
+         case "report":
+            return handleReportSubcommand(interaction);
          default:
             throw new Error(`Unrecognized subcommand '${subcommand}'`);
       }

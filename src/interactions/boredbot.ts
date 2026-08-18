@@ -136,15 +136,15 @@ const config = new SlashCommandBuilder()
         .addSubcommand(subcommand => subcommand
             .setName("log")
             .setDescription("Log a note about a specific user")
-            .addUserOption(option => option
-                .setName("user")
-                .setDescription("The user this note is about")
-                .setRequired(true)
-            )
             .addStringOption(option => option
                 .setName("note")
                 .setDescription("The note you want to save for this user")
                 .setRequired(true)
+            )
+            .addUserOption(option => option
+                .setName("user")
+                .setDescription("The user this note is about (defaults to current thread's member)")
+                .setRequired(false)
             )
         )
         .addSubcommand(subcommand => subcommand
@@ -161,8 +161,17 @@ const config = new SlashCommandBuilder()
             .setDescription("Look up notes that have been saved for a user")
             .addUserOption(option => option
                 .setName("user")
-                .setDescription("The user to lookup")
-                .setRequired(true)
+                .setDescription("The user to lookup (defaults to current thread's member)")
+                .setRequired(false)
+            )
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("audit-log")
+            .setDescription("Fetch recent server audit log actions for a user")
+            .addUserOption(option => option
+                .setName("user")
+                .setDescription("The user to check audit logs for (defaults to current thread's member)")
+                .setRequired(false)
             )
         )
         .addSubcommand(subcommand => subcommand

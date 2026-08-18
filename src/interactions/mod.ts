@@ -6,6 +6,12 @@ import { assertDefined } from "../prelude";
 import { broadcast, World } from "../world";
 import { getSetting } from "../environment";
 import { addExemptRole, removeExemptRole, getExemptRoles } from "../features/multipost";
+import {
+   parseUserIdFromThread,
+   postToMemberReportThread,
+   makeModNoteEmbed,
+   fetchUserAuditHistory
+} from "../features/moderation-logging";
 
 interface note {
    moderator: string;
@@ -49,6 +55,25 @@ const makeNoteSavedAnnouncement = ({ userId, note, modname }: noteAnnouncementPr
    }]
 });
 
+const resolveTargetUser = async (
+   interaction: ChatInputCommandInteraction
+): Promise<{ id: string; username: string } | null> => {
+   const explicitUser = interaction.options.getUser("user");
+   if (explicitUser) {
+      return { id: explicitUser.id, username: explicitUser.username };
+   }
+   const parsedId = parseUserIdFromThread(interaction.channel);
+   if (parsedId) {
+      try {
+         const fetched = await interaction.client.users.fetch(parsedId);
+         return { id: fetched.id, username: fetched.username };
+      } catch {
+         return { id: parsedId, username: `User ${parsedId}` };
+      }
+   }
+   return null;
+};
+
 const echo = (interaction: ChatInputCommandInteraction) => {
    const text = interaction.options.getString ("text");
    assertDefined (text, "'text' is a required option");
@@ -60,12 +85,18 @@ const echo = (interaction: ChatInputCommandInteraction) => {
       .catch (interactionFailed);
 };
 
-const logNote = (interaction: ChatInputCommandInteraction, world: World) => {
-   const user = interaction.options.getUser ("user");
-   const content = interaction.options.getString ("note");
+const logNote = async (interaction: ChatInputCommandInteraction, world: World) => {
+   const user = await resolveTargetUser(interaction);
+   if (!user) {
+      await interaction.reply({
+         content: "⚠️ Please specify a `user` or run this command inside a member's logging thread.",
+         ephemeral: true
+      }).catch(interactionFailed);
+      return;
+   }
 
-   assertDefined (user, "'user' is a required option");
-   assertDefined (content, "'content' is a required option");
+   const content = interaction.options.getString ("note");
+   assertDefined (content, "'note' is a required option");
 
    const note: note = {
       moderator: interaction.user.id,
@@ -74,27 +105,40 @@ const logNote = (interaction: ChatInputCommandInteraction, world: World) => {
       timestamp: new Date ()
    };
 
-   const document = world.mongodb
-      .collection<note> (collection_name)
-      .insertOne (note);
+   try {
+      await world.mongodb
+         .collection<note> (collection_name)
+         .insertOne (note);
 
-   const response = document
-      .then (_ => makeSavedNoteReply ({
+      // Post note directly into user's member report thread
+      if (interaction.guild) {
+         const noteEmbed = makeModNoteEmbed(user, interaction.user, content, note.timestamp);
+         await postToMemberReportThread(
+            interaction.guild,
+            user,
+            null,
+            noteEmbed,
+            `Mod note logged by ${interaction.user.tag}`
+         );
+      }
+
+      const response = makeSavedNoteReply ({
          note: note.note,
          userId: user.id, 
          ephemeral: interaction.channelId !== getSetting(interaction.guildId, "CHANNEL_ADMIN")
-      }));
+      });
 
-   const announcement = response.then (_ => makeNoteSavedAnnouncement ({
-      userId: user.id,
-      modname: interaction.user.username,
-      note: note.note
-   }));
-   
-   Promise
-      .all ([response, announcement])
-      .then (([r, a]) => interaction.reply (r).then (_ => broadcast (world, getSetting(interaction.guildId, "CHANNEL_BOT_LOG"), a)))
-      .catch (interactionFailed);
+      const announcement = makeNoteSavedAnnouncement ({
+         userId: user.id,
+         modname: interaction.user.username,
+         note: note.note
+      });
+
+      await interaction.reply (response);
+      await broadcast (world, getSetting(interaction.guildId, "CHANNEL_BOT_LOG"), announcement);
+   } catch (err) {
+      interactionFailed (err as Error);
+   }
 };
 
 interface userNotesProps {
@@ -119,23 +163,57 @@ const makeUserNotesReply = ({ username, now, notes, ephemeral }: userNotesProps)
    };
 };
 
-const lookup = (interaction: ChatInputCommandInteraction, world: World) => {
-   const user = interaction.options.getUser ("user");
-   assertDefined (user, "'user' is a required field");
+const lookup = async (interaction: ChatInputCommandInteraction, world: World) => {
+   const user = await resolveTargetUser(interaction);
+   if (!user) {
+      await interaction.reply({
+         content: "⚠️ Please specify a `user` or run this command inside a member's logging thread.",
+         ephemeral: true
+      }).catch(interactionFailed);
+      return;
+   }
 
-   const notes = world.mongodb
-      .collection<note> (collection_name)
-      .find ({ userId: user.id })
-      .toArray ();
+   try {
+      const notes = await world.mongodb
+         .collection<note> (collection_name)
+         .find ({ userId: user.id })
+         .toArray ();
 
-   notes
-      .then (notes => makeUserNotesReply ({
+      const response = makeUserNotesReply ({
          username: user.username,
          notes,
          now: new Date (),
          ephemeral: interaction.channelId !== getSetting(interaction.guildId, "CHANNEL_ADMIN")
-      }))
-      .then (_ => interaction.reply (_), interactionFailed);
+      });
+
+      await interaction.reply (response);
+   } catch (err) {
+      interactionFailed (err as Error);
+   }
+};
+
+const auditLog = async (interaction: ChatInputCommandInteraction) => {
+   if (!interaction.guild) {
+      await interaction.reply ({ content: "⚠️ This command must be used within a server.", ephemeral: true }).catch(interactionFailed);
+      return;
+   }
+
+   const user = await resolveTargetUser(interaction);
+   if (!user) {
+      await interaction.reply({
+         content: "⚠️ Please specify a `user` or run this command inside a member's logging thread.",
+         ephemeral: true
+      }).catch(interactionFailed);
+      return;
+   }
+
+   try {
+      await interaction.deferReply();
+      const embed = await fetchUserAuditHistory(interaction.guild, user.id);
+      await interaction.editReply({ embeds: [embed] });
+   } catch (err) {
+      interactionFailed(err as Error);
+   }
 };
 
 const multipostExemptAdd = (interaction: ChatInputCommandInteraction, world: World) => {
@@ -186,15 +264,15 @@ export const modSubcommandGroupConfig: Interaction.option = {
          name: "log",
          description: "Log a note about a specific user",
          options: [{
-            type: optionType.user,
-            name: "user",
-            description: "The user this note is about",
-            required: true
-         }, {
             type: optionType.string,
             name: "note",
             description: "The note you want to save for this user",
             required: true
+         }, {
+            type: optionType.user,
+            name: "user",
+            description: "The user this note is about (defaults to current thread's member)",
+            required: false
          }]
       },
 
@@ -217,8 +295,19 @@ export const modSubcommandGroupConfig: Interaction.option = {
          options: [{
             type: optionType.user,
             name: "user",
-            description: "The user to lookup",
-            required: true
+            description: "The user to lookup (defaults to current thread's member)",
+            required: false
+         }]
+      },
+      {
+         type: optionType.sub_command,
+         name: "audit-log",
+         description: "Fetch recent server audit log actions for a user",
+         options: [{
+            type: optionType.user,
+            name: "user",
+            description: "The user to check audit logs for (defaults to current thread's member)",
+            required: false
          }]
       },
       {
@@ -263,6 +352,10 @@ export const handleModSubcommand = (interaction: ChatInputCommandInteraction, wo
 
       case "lookup":
          lookup (interaction, world);
+         break;
+
+      case "audit-log":
+         auditLog (interaction);
          break;
 
       case "multipost-exempt-add":
