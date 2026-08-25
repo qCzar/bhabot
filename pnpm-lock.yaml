@@ -104,6 +104,9 @@ importers:
       zod:
         specifier: ^3.19.1
         version: 3.25.76
+      tsx:
+        specifier: ^3.9.0
+        version: 3.14.0
     devDependencies:
       '@types/hapi__hapi':
         specifier: ^20.0.8
@@ -162,9 +165,6 @@ importers:
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@15.14.9)(typescript@4.9.5)
-      tsx:
-        specifier: ^3.9.0
-        version: 3.14.0
       typescript:
         specifier: ^4.7.4
         version: 4.9.5
