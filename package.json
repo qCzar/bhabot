@@ -7,8 +7,10 @@
     "node": ">= 16"
   },
   "scripts": {
-    "start": "NODE_ENV=production tsx src/Main.ts",
-    "dev": "ts-node-dev ./src/main.ts",
+    "build": "tsc",
+    "start": "NODE_ENV=production node build/Main.js",
+    "start:ts": "NODE_ENV=production tsx src/Main.ts",
+    "dev": "ts-node-dev ./src/Main.ts",
     "test": "jest",
     "test:watch": "jest --watch"
   },
