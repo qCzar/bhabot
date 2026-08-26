@@ -27,9 +27,7 @@
     <!-- Header -->
     <header class="header">
       <h1 id="mainHeaderTitle">Server Settings & Configuration</h1>
-      <p>Customize your server's bot preferences and copy `/boredbot` slash commands to paste into your admin channel.
-        These values are not pulled from the database - they are the default values the bot launches with - and
-        as such do not reflect your servers current configuration.</p>
+      <p>Customize your server's bot preferences, import existing settings from a hash, and export configured values back to Discord.</p>
 
       <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem;">
         <div class="badge-server" id="serverBadge" style="display: none;">
@@ -38,6 +36,26 @@
         </div>
       </div>
     </header>
+
+    <!-- Import / Load Hash Section -->
+    <section class="card-section">
+      <h2 class="section-title">
+        <i class="material-icons">file_download</i>
+        Import / Load Settings Hash
+      </h2>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+        Paste the hash string or URL generated from <code style="font-family: 'Fira Code', monospace; color: var(--text-main); background: var(--input-bg); padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid var(--card-border);">/boredbot settings export</code> to load your current configuration.
+      </p>
+      <div class="form-group">
+        <label for="importHashInput">Settings Hash or Dashboard URL</label>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="importHashInput" placeholder="Paste Base64 hash or https://...#hash" style="flex: 1;" />
+          <button type="button" class="btn-primary" id="loadHashBtn" style="padding: 0.5rem 1rem; font-size: 0.9rem; white-space: nowrap; width: auto;">
+            <i class="material-icons" style="font-size: 1.1rem; margin-right: 0.2rem;">sync</i> Load
+          </button>
+        </div>
+      </div>
+    </section>
 
     <!-- Server ID Section -->
     <section class="card-section">
@@ -62,11 +80,11 @@
       </div>
     </section>
 
-    <!-- Section 2: Meetup & RSVP Defaults -->
+    <!-- Section 2: Meetup & Recurrence Defaults -->
     <section class="card-section">
       <h2 class="section-title">
         <i class="material-icons">event</i>
-        Meetup & RSVP Defaults
+        Meetup & Recurrence Defaults
       </h2>
       <div id="category-meetup">
         <!-- Rendered by admin.js -->
@@ -84,34 +102,56 @@
       </div>
     </section>
 
-    <!-- Section 4: Onboarding & Anti-Spam -->
+    <!-- Section 4: Onboarding & Moderation Audit -->
     <section class="card-section">
       <h2 class="section-title">
         <i class="material-icons">waving_hand</i>
-        Onboarding & Anti-Spam
+        Onboarding & Moderation Audit
       </h2>
       <div id="category-onboarding">
         <!-- Rendered by admin.js -->
       </div>
     </section>
 
+    <!-- Export Settings Hash Card -->
+    <section class="card-section">
+      <div class="summary-header">
+        <h2 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+          <i class="material-icons">file_upload</i>
+          Export Settings Hash
+        </h2>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn-inline-copy" id="copyHashBtn">
+            <i class="material-icons">content_copy</i> Copy Hash
+          </button>
+          <button type="button" class="btn-primary" id="copyImportCmdBtn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto;">
+            <i class="material-icons" style="font-size: 1rem; margin-right: 0.2rem;">terminal</i> Copy Import Command
+          </button>
+        </div>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.75rem; margin-bottom: 0.75rem;">
+        Copy this hash to paste into <code style="font-family: 'Fira Code', monospace; color: var(--text-main); background: var(--input-bg); padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid var(--card-border);">/boredbot settings import data: &lt;hash&gt;</code> to apply all current values at once.
+      </p>
+      <textarea id="exportHashOutput" readonly style="font-family: 'Fira Code', monospace; font-size: 0.8rem; height: 90px; resize: none; background: var(--bg-color); border: 1px solid var(--card-border); border-radius: var(--radius-sm); width: 100%; color: var(--text-main); padding: 0.5rem;"></textarea>
+    </section>
+
     <!-- Summary & Batch Copy Card -->
     <section class="summary-card">
       <div class="summary-header">
-        <h2 class="section-title" style="margin-bottom: 0;">
+        <h2 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
           <i class="material-icons">terminal</i>
-          All Config Commands Preview
+          Individual Slash Commands Preview
         </h2>
         <div style="display: flex; gap: 0.5rem;">
           <button type="button" class="btn-inline-copy" id="resetBtn">
             <i class="material-icons">restart_alt</i> Reset Defaults
           </button>
-          <button type="button" class="btn-primary" id="copyAllBtn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+          <button type="button" class="btn-primary" id="copyAllBtn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; width: auto;">
             <i class="material-icons" style="font-size: 1rem; margin-right: 0.2rem;">content_copy</i> Copy All Commands
           </button>
         </div>
       </div>
-      <pre class="summary-pre" id="summaryOutput"></pre>
+      <pre class="summary-pre" id="summaryOutput" style="margin-top: 1rem;"></pre>
     </section>
 
   </div>

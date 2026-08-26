@@ -9,7 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyAllBtn = document.getElementById('copyAllBtn');
   const resetBtn = document.getElementById('resetBtn');
 
-  // Definition of per-server configuration settings
+  // Hash Import / Export Elements
+  const importHashInput = document.getElementById('importHashInput');
+  const loadHashBtn = document.getElementById('loadHashBtn');
+  const exportHashOutput = document.getElementById('exportHashOutput');
+  const copyHashBtn = document.getElementById('copyHashBtn');
+  const copyImportCmdBtn = document.getElementById('copyImportCmdBtn');
+
+  // Definition of all 21 bot configuration settings
   const settingsDefinitions = [
     // Category 1: Mention Cooldowns & Pings
     {
@@ -35,17 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Global cooldown period (in seconds) before a specific role can be pinged again by anyone.'
     },
     {
-      id: 'max_pings_per_meetup',
-      category: 'cooldowns',
-      name: 'Max Pings Per Meetup',
-      key: 'max_pings_per_meetup',
-      type: 'number',
-      default: 1,
-      min: 0,
-      unit: 'pings',
-      description: 'Maximum number of role pings allowed when scheduling or updating a single meetup event.'
-    },
-    {
       id: 'ALLOW_EVERYONE_PING',
       category: 'cooldowns',
       name: 'Allow @everyone / @here Pings',
@@ -65,50 +61,28 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Comma-separated list of channel names or Channel IDs where @everyone and @here pings are permitted.'
     },
 
-    // Category 2: Meetup & RSVP Defaults
+    // Category 2: Meetup & Recurrence Defaults
     {
-      id: 'default_duration',
+      id: 'MEETUP_TIMEZONE',
       category: 'meetup',
-      name: 'Default Meetup Duration',
-      key: 'default_duration',
-      type: 'number',
-      default: 120,
-      min: 15,
-      unit: 'minutes',
-      description: 'Default scheduled event length in minutes if unspecified by creator.'
+      name: 'Meetup Timezone',
+      key: 'MEETUP_TIMEZONE',
+      type: 'text',
+      default: 'America/Chicago',
+      placeholder: 'America/Chicago',
+      description: 'IANA timezone for meetup scheduling and recurrence calculations.'
     },
     {
-      id: 'max_rsvp_limit',
+      id: 'MEETUP_RECURRENCE_WINDOW_DAYS',
       category: 'meetup',
-      name: 'Default Max Capacity',
-      key: 'max_rsvp_limit',
+      name: 'Recurrence Window (Days)',
+      key: 'MEETUP_RECURRENCE_WINDOW_DAYS',
       type: 'number',
-      default: 200,
+      default: 21,
       min: 1,
-      unit: 'attendees',
-      description: 'Default maximum RSVP attendee limit per meetup.'
-    },
-    {
-      id: 'rsvp_cutoff_hours',
-      category: 'meetup',
-      name: 'RSVP Cutoff Deadline Buffer',
-      key: 'rsvp_cutoff_hours',
-      type: 'number',
-      default: 0,
-      min: 0,
-      unit: 'hours',
-      description: 'Hours prior to event start time when RSVPs automatically close (0 allows RSVPs up until or after event starts).'
-    },
-    {
-      id: 'auto_archive_hours',
-      category: 'meetup',
-      name: 'Auto-Archive Delay',
-      key: 'auto_archive_hours',
-      type: 'number',
-      default: 24,
-      min: 1,
-      unit: 'hours',
-      description: 'Hours after event conclusion before the event discussion channel or thread auto-archives.'
+      max: 365,
+      unit: 'days',
+      description: 'How many days in advance recurring meetup occurrences are automatically generated.'
     },
 
     // Category 3: Channels & Logs
@@ -153,6 +127,36 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Directory channel listing active events.'
     },
     {
+      id: 'CHANNEL_MEMBER_REPORTS',
+      category: 'channels',
+      name: 'Member Reports Channel',
+      key: 'CHANNEL_MEMBER_REPORTS',
+      type: 'text',
+      default: '',
+      placeholder: '#member-reports or 123456789012345678',
+      description: 'Channel ID where member reports and alerts are directed.'
+    },
+    {
+      id: 'CHANNEL_SHITPOST',
+      category: 'channels',
+      name: 'Shitpost / Spam Channel',
+      key: 'CHANNEL_SHITPOST',
+      type: 'text',
+      default: '',
+      placeholder: '#shitpost or 123456789012345678',
+      description: 'Channel ID dedicated to casual and bot fun commands.'
+    },
+    {
+      id: 'CHANNEL_THROWDOWN',
+      category: 'channels',
+      name: 'Throwdown Channel',
+      key: 'CHANNEL_THROWDOWN',
+      type: 'text',
+      default: '',
+      placeholder: '#throwdown or 123456789012345678',
+      description: 'Channel ID for throwdown minigame interactions.'
+    },
+    {
       id: 'CHANNEL_BOT_LOG',
       category: 'channels',
       name: 'Bot Audit Log Channel',
@@ -163,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       description: 'Discord channel ID where bot audit events and logs are posted.'
     },
 
-    // Category 4: Onboarding & Anti-Spam
+    // Category 4: Onboarding & Moderation Audit
     {
       id: 'ONBOARDING_CHANNEL_ID',
       category: 'onboarding',
@@ -194,6 +198,43 @@ document.addEventListener('DOMContentLoaded', () => {
       min: 1,
       unit: 'characters',
       description: 'Minimum character length required for onboarding intro posts.'
+    },
+    {
+      id: 'LOG_MEMBER_BANS',
+      category: 'onboarding',
+      name: 'Log Member Bans',
+      key: 'LOG_MEMBER_BANS',
+      type: 'boolean',
+      default: true,
+      description: 'Automatically post an audit embed when a member is banned.'
+    },
+    {
+      id: 'LOG_MEMBER_KICKS',
+      category: 'onboarding',
+      name: 'Log Member Kicks',
+      key: 'LOG_MEMBER_KICKS',
+      type: 'boolean',
+      default: true,
+      description: 'Automatically post an audit embed when a member is kicked.'
+    },
+    {
+      id: 'LOG_MEMBER_MESSAGE_DELETES',
+      category: 'onboarding',
+      name: 'Log Message Deletions',
+      key: 'LOG_MEMBER_MESSAGE_DELETES',
+      type: 'boolean',
+      default: true,
+      description: 'Automatically post an audit embed when a message is deleted.'
+    },
+    {
+      id: 'REDDIT_SECRET',
+      category: 'onboarding',
+      name: 'Reddit Secret Key',
+      key: 'REDDIT_SECRET',
+      type: 'text',
+      default: '',
+      placeholder: 'Secret token',
+      description: 'Secret token used for Reddit integrations.'
     }
   ];
 
@@ -237,12 +278,13 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       } else if (setting.type === 'number') {
         const minVal = setting.min !== undefined ? setting.min : 0;
+        const maxAttr = setting.max !== undefined ? `max="${setting.max}"` : '';
         controlHTML = `
-          <input type="number" id="input-${setting.id}" value="${state[setting.id]}" min="${minVal}" step="1">
+          <input type="number" id="input-${setting.id}" value="${state[setting.id]}" min="${minVal}" ${maxAttr} step="1">
         `;
       } else {
         controlHTML = `
-          <input type="text" id="input-${setting.id}" value="${escapeHtml(state[setting.id])}" placeholder="${escapeHtml(setting.placeholder || '')}">
+          <input type="text" id="input-${setting.id}" value="${escapeHtml(String(state[setting.id] || ''))}" placeholder="${escapeHtml(setting.placeholder || '')}">
         `;
       }
 
@@ -285,6 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (setting.min !== undefined && val < setting.min) {
               val = setting.min;
               e.target.value = setting.min;
+            } else if (setting.max !== undefined && val > setting.max) {
+              val = setting.max;
+              e.target.value = setting.max;
             }
             state[setting.id] = val;
           } else {
@@ -329,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (setting.type === 'boolean') {
       valStr = val ? 'true' : 'false';
     } else if (setting.type === 'text') {
-      valStr = `"${val}"`;
+      valStr = `"${val || ''}"`;
     }
     return `/boredbot settings set key: ${setting.key} value: ${valStr}`;
   }
@@ -344,29 +389,140 @@ document.addEventListener('DOMContentLoaded', () => {
     if (setting.type === 'boolean') {
       valStr = val ? 'true' : 'false';
     } else if (setting.type === 'text') {
-      valStr = `"${escapeHtml(val)}"`;
+      valStr = `"${escapeHtml(String(val || ''))}"`;
     }
 
     textEl.innerHTML = `<span class="cmd-verb">/boredbot settings set</span> key: <span class="cmd-key">${escapeHtml(setting.key)}</span> value: <span class="cmd-val">${valStr}</span>`;
   }
 
-  // Update Summary card showing all commands
+  // Generate clean settings dictionary and export hash
+  function generateExportHash() {
+    const payload = {};
+    settingsDefinitions.forEach(setting => {
+      payload[setting.key] = state[setting.id];
+    });
+    try {
+      return btoa(JSON.stringify(payload));
+    } catch (e) {
+      console.error('Failed to encode settings to base64', e);
+      return '';
+    }
+  }
+
+  // Update Summary card and Export Hash Output
   function updateSummaryOutput() {
+    // 1. Update individual commands text
     const commands = settingsDefinitions.map(setting => generateSlashCommand(setting));
     const fullText = `# Server Configuration Commands (${serverIdInput.value.trim() || 'Default Server'})\n` + commands.join('\n');
     summaryOutput.textContent = fullText;
+
+    // 2. Update export hash box
+    const hash = generateExportHash();
+    if (exportHashOutput) {
+      exportHashOutput.value = hash;
+    }
+  }
+
+  // Apply imported data object or hash string
+  function applyImportedData(input, showFeedback = true) {
+    if (!input || typeof input !== 'string') return false;
+
+    let raw = input.trim();
+    if (!raw) return false;
+
+    // If input contains a URL with hash, extract everything after the last #
+    if (raw.includes('#')) {
+      raw = raw.slice(raw.lastIndexOf('#') + 1).trim();
+    }
+
+    let parsed = null;
+
+    // 1. Try Base64 decode
+    try {
+      const decodedJson = atob(raw);
+      parsed = JSON.parse(decodedJson);
+    } catch (_) {
+      // 2. Try parsing raw input directly as JSON
+      try {
+        parsed = JSON.parse(raw);
+      } catch (err) {
+        if (showFeedback) {
+          alert('Could not decode settings data. Please provide a valid Base64 hash, dashboard URL, or JSON string.');
+        }
+        return false;
+      }
+    }
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      if (showFeedback) alert('Invalid settings structure. Expected a key-value dictionary.');
+      return false;
+    }
+
+    const settings = parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : parsed;
+    let appliedCount = 0;
+
+    settingsDefinitions.forEach(setting => {
+      if (settings[setting.key] !== undefined) {
+        let val = settings[setting.key];
+        if (setting.type === 'boolean') {
+          val = Boolean(val);
+        } else if (setting.type === 'number') {
+          val = Number(val);
+          if (isNaN(val)) val = setting.default;
+        } else {
+          val = String(val ?? '');
+        }
+        state[setting.id] = val;
+
+        const inputEl = document.getElementById(`input-${setting.id}`);
+        if (inputEl) {
+          if (setting.type === 'boolean') {
+            inputEl.checked = val;
+          } else {
+            inputEl.value = val;
+          }
+        }
+        updateSingleSettingCommand(setting);
+        appliedCount++;
+      }
+    });
+
+    updateSummaryOutput();
+
+    if (showFeedback) {
+      showToast(`Loaded ${appliedCount} setting(s) successfully!`);
+    }
+    return true;
+  }
+
+  // Read hash on load or on hashchange
+  function loadFromHash() {
+    if (window.location.hash && window.location.hash.length > 1) {
+      const hashContent = window.location.hash.slice(1);
+      if (importHashInput) {
+        importHashInput.value = window.location.href;
+      }
+      applyImportedData(hashContent, false);
+      showToast('Loaded settings from URL hash!');
+    }
   }
 
   // Helper: Copy text to clipboard
-  function copyTextToClipboard(text) {
+  function copyTextToClipboard(text, customMessage) {
     navigator.clipboard.writeText(text).then(() => {
-      copyToast.classList.add('show');
-      setTimeout(() => {
-        copyToast.classList.remove('show');
-      }, 2500);
+      showToast(customMessage || 'Command copied to clipboard!');
     }).catch(err => {
       console.error('Failed to copy to clipboard:', err);
     });
+  }
+
+  // Helper: Show toast
+  function showToast(message) {
+    copyToast.innerHTML = `<i class="material-icons">check_circle</i> ${escapeHtml(message)}`;
+    copyToast.classList.add('show');
+    setTimeout(() => {
+      copyToast.classList.remove('show');
+    }, 2500);
   }
 
   // Helper: Escape HTML
@@ -395,9 +551,39 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSummaryOutput();
   });
 
+  // Load Hash Button
+  if (loadHashBtn && importHashInput) {
+    loadHashBtn.addEventListener('click', () => {
+      applyImportedData(importHashInput.value, true);
+    });
+
+    importHashInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        applyImportedData(importHashInput.value, true);
+      }
+    });
+  }
+
+  // Copy Settings Hash Button
+  if (copyHashBtn) {
+    copyHashBtn.addEventListener('click', () => {
+      const hash = generateExportHash();
+      copyTextToClipboard(hash, 'Settings hash copied to clipboard!');
+    });
+  }
+
+  // Copy Import Slash Command Button
+  if (copyImportCmdBtn) {
+    copyImportCmdBtn.addEventListener('click', () => {
+      const hash = generateExportHash();
+      const cmd = `/boredbot settings import data: ${hash}`;
+      copyTextToClipboard(cmd, 'Import command copied to clipboard!');
+    });
+  }
+
   // Copy All Commands Button
   copyAllBtn.addEventListener('click', () => {
-    copyTextToClipboard(summaryOutput.textContent);
+    copyTextToClipboard(summaryOutput.textContent, 'All commands copied to clipboard!');
   });
 
   // Reset Defaults Button
@@ -416,11 +602,16 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSingleSettingCommand(setting);
       });
       updateSummaryOutput();
+      showToast('Settings reset to defaults');
     }
   });
+
+  // Window hash change listener
+  window.addEventListener('hashchange', loadFromHash);
 
   // Init execution
   initServerParam();
   renderSettings();
   updateSummaryOutput();
+  loadFromHash();
 });
