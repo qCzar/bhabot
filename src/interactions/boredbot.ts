@@ -6,6 +6,7 @@ import { logger } from "../logger";
 import { handleActivityAdminSubcommand, handleActivityAutocomplete } from "./activity";
 import { handleModSubcommand } from "./mod";
 import { handleMeetupAdminSubcommand } from "./meetup";
+import { serializeSettings, deserializeSettings, adminDashboardUrl, applyImportedSettings } from "./settings-serializer";
 
 const log = logger("boredbot");
 
@@ -81,6 +82,21 @@ const config = new SlashCommandBuilder()
             .addStringOption(option => option
                 .setName("value")
                 .setDescription("The value to remove")
+                .setRequired(true)
+            )
+            .addBooleanOption(addGlobalOption)
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("export")
+            .setDescription("Export all settings as an encoded hash and dashboard link")
+            .addBooleanOption(addGlobalOption)
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("import")
+            .setDescription("Import settings from an exported hash, URL, or JSON")
+            .addStringOption(option => option
+                .setName("data")
+                .setDescription("The exported settings hash, dashboard URL, or JSON")
                 .setRequired(true)
             )
             .addBooleanOption(addGlobalOption)
@@ -226,6 +242,78 @@ export const boredbot: interaction = {
             const isGlobal = interaction.options.getBoolean("global") ?? false;
             const targetGuildId = isGlobal ? null : interaction.guildId;
             const scopeName = isGlobal ? "Global" : `Server (${targetGuildId})`;
+
+            if (subcommand === "export") {
+                const hash = serializeSettings(targetGuildId);
+                const formUrl = env.MEETUP_FORM_URL || "https://qczar.github.io/bhabot/";
+                const adminUrl = adminDashboardUrl(formUrl, hash, targetGuildId);
+
+                await interaction.reply({
+                    embeds: [{
+                        title: `⚙️ Exported Settings [${scopeName}]`,
+                        description: [
+                            `🔗 [**Open in Admin Dashboard**](${adminUrl})`,
+                            ``,
+                            `**Settings Hash:**`,
+                            `\`\`\`text\n${hash}\n\`\`\``,
+                            `*Copy the hash above to back up settings or import them using \`/boredbot settings import\`.*`
+                        ].join("\n"),
+                        color: 0x5865F2
+                    }],
+                    ephemeral: true
+                });
+                return;
+            }
+            else if (subcommand === "import") {
+                const data = interaction.options.getString("data", true);
+                let parsed: Record<string, any>;
+                try {
+                    parsed = deserializeSettings(data);
+                } catch (e) {
+                    await interaction.reply({
+                        content: `⚠️ Failed to parse settings data: ${e instanceof Error ? e.message : 'Invalid format'}`,
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                await interaction.deferReply({ ephemeral: true });
+
+                const result = await applyImportedSettings(world.mongodb, targetGuildId, parsed);
+
+                if (result.updated.length === 0 && result.failed.length === 0) {
+                    await interaction.editReply({
+                        content: `⚠️ No recognized settings found to import. Make sure the data contains valid setting keys.`
+                    });
+                    return;
+                }
+
+                const lines: string[] = [
+                    `✅ [${scopeName}] Successfully imported **${result.updated.length}** setting(s).`
+                ];
+
+                if (result.updated.length > 0) {
+                    lines.push(`\n**Updated:**\n` + result.updated.map(k => `• \`${k}\``).join("\n"));
+                }
+
+                if (result.failed.length > 0) {
+                    lines.push(`\n⚠️ **Failed to update (${result.failed.length}):**\n` + result.failed.map(f => `• \`${f.key}\`: ${f.error}`).join("\n"));
+                }
+
+                if (result.ignored.length > 0) {
+                    lines.push(`\nℹ️ *Ignored unknown keys: ${result.ignored.map(k => `\`${k}\``).join(", ")}*`);
+                }
+
+                log.info(`Imported ${result.updated.length} settings in scope ${scopeName} by ${interaction.user.tag}`, {
+                    guildId: targetGuildId,
+                    updatedCount: result.updated.length,
+                    failedCount: result.failed.length
+                });
+
+                await interaction.editReply({ content: lines.join("\n") });
+                return;
+            }
+
             const key = interaction.options.getString("key", true) as DynamicKey;
 
             if (subcommand === "get") {
