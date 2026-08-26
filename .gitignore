@@ -2,3 +2,10 @@ node_modules/
 .pnpm-store/
 .DS_Store
 *.log
+
+.env
+coverage/
+build/
+dist/
+*.tsbuildinfo
+
