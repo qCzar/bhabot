@@ -95,6 +95,8 @@ export const handleReportSubcommand = async (interaction: Discord.ChatInputComma
    const messageLink = interaction.options.getString ("message-link");
 
    try {
+      await interaction.deferReply ({ ephemeral: true });
+
       if (!interaction.guild) {
          throw new Error ("Report command must be used in a guild");
       }
@@ -128,7 +130,7 @@ export const handleReportSubcommand = async (interaction: Discord.ChatInputComma
       await sendAdminAlert (interaction, thread, user).catch (interactionFailed);
 
       await interaction.editReply ({
-         content: `✅ Report filed in ${thread}. Thank you for helping keep an eye on things.`
+         content: "✅ Report filed. Thank you for helping keep an eye on things."
       });
    }
    catch (err) {
