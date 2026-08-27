@@ -6,6 +6,7 @@ import * as EndMeetups from "./features/EndMeetup";
 import * as Render from "./features/RenderAnnouncement";
 import * as KeepThreadsOpen from "./features/KeepThreadsOpen";
 import * as GenerateRecurringMeetups from "./features/GenerateRecurringMeetups";
+import * as OrganizerReminder from "./features/OrganizerReminder";
 
 import { getMeetup } from "./routes/get-meetup";
 import { redirectGoogleCalendar } from "./routes/gcal";
@@ -28,6 +29,9 @@ export const startup = (client: Discord.Client): void => {
 
    // Materialize recurring occurrences inside each server's rolling window
    GenerateRecurringMeetups.init (client);
+
+   // Manages organizer RSVP reminders, claim recovery, and auto-cancellations
+   OrganizerReminder.init (client);
 };
 
 export const routes = [

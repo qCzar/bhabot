@@ -2,6 +2,7 @@ import * as Discord from "discord.js";
 import { DateTime } from "luxon";
 import { logger, runWithLoggingContext } from "../../../logger";
 import * as db from "../db/meetups";
+import * as OrganizerReminder from "./OrganizerReminder";
 
 const log = logger ("fit:update-rsvps");
 
@@ -87,8 +88,18 @@ const createRsvpListener = async (client: Discord.Client, meetup: db.Meetup): Pr
             .filter (id => id !== i.user.id)
             .concat ((nextState === Rsvp.Interested) ? [i.user.id] : []);
 
-         await db.update ({ ...meetupState, rsvps, maybes });
+         const updatedMeetup = { ...meetupState, rsvps, maybes };
+         await db.update (updatedMeetup);
          i.deferUpdate ();
+
+         if (i.user.id === meetupState.organizerID) {
+            if (prevState === Rsvp.Attending && nextState !== Rsvp.Attending) {
+               await OrganizerReminder.handleOrganizerUnrsvped (client, updatedMeetup);
+            }
+            else if (nextState === Rsvp.Attending && prevState !== Rsvp.Attending) {
+               await OrganizerReminder.handleOrganizerRsvped (updatedMeetup);
+            }
+         }
 
          // Announce the change
          const content = (function () {

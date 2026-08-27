@@ -34,6 +34,8 @@ const envSchema = z.object ({
    MEETUP_API_URL: z.string ().default ("https://meetup.rochesterbored.com"),
    MEETUP_RECURRENCE_WINDOW_DAYS: z.coerce.number ().int ().min (1).max (365).default (21),
    MEETUP_TIMEZONE: timezone.default ("America/Chicago"),
+   MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS: z.coerce.number().default (24),
+   MEETUP_AUTOCANCEL_BEFORE_START_HOURS: z.coerce.number().default (2),
    PING_WHITELIST_CHANNELS: z.string ().default (""),
    ALLOW_EVERYONE_PING: z.coerce.boolean().default(false),
    COOLDOWN_USER_PING: z.coerce.number().default(60),
@@ -69,6 +71,8 @@ const defaultTestEnv: environment = {
    MEETUP_API_URL: "https://meetup.rochesterbored.com",
    MEETUP_RECURRENCE_WINDOW_DAYS: 21,
    MEETUP_TIMEZONE: "America/Chicago",
+   MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS: 24,
+   MEETUP_AUTOCANCEL_BEFORE_START_HOURS: 2,
    PING_WHITELIST_CHANNELS: "",
    ALLOW_EVERYONE_PING: false,
    COOLDOWN_USER_PING: 60,
@@ -92,6 +96,7 @@ export const dynamicKeys = [
    "CHANNEL_ADMIN", "CHANNEL_BOT_ADMIN", "CHANNEL_MEETUPS", "CHANNEL_MEETUPS_DIR",
    "CHANNEL_MEMBER_REPORTS", "CHANNEL_SHITPOST", "CHANNEL_THROWDOWN", "CHANNEL_BOT_LOG", "ONBOARDING_CHANNEL_ID",
    "ONBOARDING_ROLE_ID", "ONBOARDING_MIN_LENGTH", "REDDIT_SECRET", "MEETUP_RECURRENCE_WINDOW_DAYS", "MEETUP_TIMEZONE",
+   "MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS", "MEETUP_AUTOCANCEL_BEFORE_START_HOURS",
    "PING_WHITELIST_CHANNELS", "ALLOW_EVERYONE_PING", "COOLDOWN_USER_PING", "COOLDOWN_ROLE_PING",
    "LOG_MEMBER_BANS", "LOG_MEMBER_KICKS", "LOG_MEMBER_MESSAGE_DELETES"
 ] as const;

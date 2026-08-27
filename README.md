@@ -98,6 +98,8 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 | `REDDIT_SECRET` | Secret for the Reddit webhook integration | — |
 | `MEETUP_RECURRENCE_WINDOW_DAYS` | Number of days ahead to post recurring meetup occurrences | `21` |
 | `MEETUP_TIMEZONE` | IANA timezone used for recurring meetup schedules | `America/Chicago` |
+| `MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS` | Hours to wait before auto-cancelling a meetup if no organizer is RSVP'd (`0` to disable) | `24` |
+| `MEETUP_AUTOCANCEL_BEFORE_START_HOURS` | Hours before event start time to auto-cancel if no organizer is RSVP'd (`0` to disable) | `2` |
 | `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored play`; threads inherit approval from a whitelisted parent channel (including all posts in a forum). Forum tags provide the available platforms. | `""` |
 | `COOLDOWN_USER_PING` | Per-user cooldown duration in seconds for mentioning roles | `60` |
 | `COOLDOWN_ROLE_PING` | Per-role cooldown duration in seconds before a role can be mentioned again | `7200` |
@@ -351,12 +353,14 @@ discussion thread from that post.
 | `create [options]` | `options` (optional YAML string) | With no options, open the web creator; with options, create a meetup in `CHANNEL_MEETUPS` |
 | `edit [options] [scope]` | `options` (optional YAML string), `scope` (`occurrence` or `future`) | Update one occurrence or it and future occurrences inside its thread |
 | `transfer <user> [scope]` | `user` (attendee mention), `scope` (`occurrence` or `future`) | Transfer the meetup to another attendee inside its thread |
+| `claim` | — | Claim an unorganized meetup occurrence inside its thread (must be RSVP'd as attending) |
 | `cancel <reason> [scope]` | `reason`, `scope` (`occurrence` or `series`) | Cancel one occurrence or all future occurrences in its series |
 | `announce` | — | Ping all RSVPs — must be used inside the thread (organizer only) |
 | `help` | — | Show the meetup command reference |
 
 **Permissions:**
 - `create` — any member; submitting generated options is restricted to `CHANNEL_MEETUPS`
+- `claim` — any attending member when the organizer is not attending
 - `edit` / `cancel` / `transfer` — organizer or a user with Kick Members permission
 - `announce` — organizer only
 
@@ -493,7 +497,7 @@ To set or update any of these variables in Discord, an admin with **Manage Serve
    /boredbot settings remove_item key:PING_WHITELIST_CHANNELS value:987654321098765432
    ```
 
-**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `PING_WHITELIST_CHANNELS`, `COOLDOWN_USER_PING`, `COOLDOWN_ROLE_PING`
+**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `MEETUP_RECURRENCE_WINDOW_DAYS`, `MEETUP_TIMEZONE`, `MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS`, `MEETUP_AUTOCANCEL_BEFORE_START_HOURS`, `PING_WHITELIST_CHANNELS`, `ALLOW_EVERYONE_PING`, `COOLDOWN_USER_PING`, `COOLDOWN_ROLE_PING`, `LOG_MEMBER_BANS`, `LOG_MEMBER_KICKS`, `LOG_MEMBER_MESSAGE_DELETES`
 
 ---
 
@@ -550,3 +554,11 @@ Once the member posts (or edits) an introduction that meets the length requireme
 ### Multipost Detection
 
 The bot watches all incoming messages and detects if users are posting the same content across multiple channels in a short window. Roles added via `/boredbot mod multipost-exempt-add` are excluded from this detection.
+
+### Meetup Organizer Reminders & Auto-Cancellation
+
+When a meetup organizer un-RSVPs from their own meetup:
+1. **10-Minute Reminder:** The bot waits 10 minutes and posts a reminder pinging the organizer in the thread to re-RSVP, transfer, or cancel, and notifying attendees they can claim the meetup with `/bored meetup claim`.
+2. **1-Hour Final Warning:** If unresolved, a final warning is posted 1 hour before auto-cancellation.
+3. **Auto-Cancellation:** If no organizer is attending after `MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS` (default: 24h) or when within `MEETUP_AUTOCANCEL_BEFORE_START_HOURS` (default: 2h) of the meetup start time, the bot automatically cancels the meetup, renames the thread to `(Cancelled)`, and notifies `@everyone` in the thread.
+4. **Resolution:** If the organizer re-RSVPs, transfers the meetup, or an attendee runs `/bored meetup claim`, the missing organizer state and pending timers are immediately cleared.

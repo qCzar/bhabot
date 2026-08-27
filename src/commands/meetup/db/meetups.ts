@@ -84,6 +84,15 @@ export type Schema = {
   /** Fields intentionally changed only for this occurrence. */
   overrides?: string[];
 
+  /** Timestamp tracking when the organizer was removed from RSVPs */
+  organizerMissingSince?: string;
+
+  /** Whether the 10-minute organizer reminder message has been posted */
+  organizerReminderSent?: boolean;
+
+  /** Whether the 1-hour final auto-cancellation warning message has been posted */
+  organizerWarningSent?: boolean;
+
   /** Meetup lifecycle */
   state: 
     | { type: "Live" }
