@@ -22,6 +22,7 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
   - [/bored mention](#bored-mention)
   - [/bored play](#bored-play)
   - [/bored pong](#bored-pong)
+  - [/bored report](#bored-report)
   - [/bored version](#bored-version)
   - [/bored activity (group)](#bored-activity-group)
   - [/bored meetup (group)](#bored-meetup-group)
@@ -35,6 +36,8 @@ A Discord bot built with [discord.js v14](https://discord.js.org/) and TypeScrip
 - [Automatic Features](#automatic-features)
   - [Onboarding](#onboarding)
   - [Multipost Detection](#multipost-detection)
+  - [Moderation Logging & Member Reports](#moderation-logging--member-reports)
+  - [Meetup Organizer Reminders & Auto-Cancellation](#meetup-organizer-reminders--auto-cancellation)
 
 ---
 
@@ -85,11 +88,12 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 
 | Variable | Description | Default |
 |---|---|---|
-| `CHANNEL_ADMIN` | Channel ID for server admin commands | — |
+| `CHANNEL_ADMIN` | Channel ID for server admin commands and member report notifications | — |
 | `CHANNEL_BOT_ADMIN` | Channel ID for bot admin commands | — |
 | `CHANNEL_BOT_LOG` | Channel ID where bot logs/notes are broadcast | — |
 | `CHANNEL_MEETUPS` | Channel ID where meetup announcements are posted | — |
 | `CHANNEL_MEETUPS_DIR` | Channel ID for the meetups directory | — |
+| `CHANNEL_MEMBER_REPORTS` | Forum channel ID for member moderation reports, mod notes, and audit log threads | `""` |
 | `CHANNEL_SHITPOST` | Channel ID for the shitpost channel | — |
 | `CHANNEL_THROWDOWN` | Channel ID where throwdown can be used | — |
 | `ONBOARDING_CHANNEL_ID` | Channel ID for new-member onboarding | — |
@@ -101,8 +105,12 @@ These variables can have initial defaults set in `.env` and can be overridden dy
 | `MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS` | Hours to wait before auto-cancelling a meetup if no organizer is RSVP'd (`0` to disable) | `24` |
 | `MEETUP_AUTOCANCEL_BEFORE_START_HOURS` | Hours before event start time to auto-cancel if no organizer is RSVP'd (`0` to disable) | `2` |
 | `PING_WHITELIST_CHANNELS` | Comma-separated channel IDs allowed to use `/bored play`; threads inherit approval from a whitelisted parent channel (including all posts in a forum). Forum tags provide the available platforms. | `""` |
+| `ALLOW_EVERYONE_PING` | Whether `@everyone` pings are permitted for game announcements | `false` |
 | `COOLDOWN_USER_PING` | Per-user cooldown duration in seconds for mentioning roles | `60` |
 | `COOLDOWN_ROLE_PING` | Per-role cooldown duration in seconds before a role can be mentioned again | `7200` |
+| `LOG_MEMBER_BANS` | Automatically create/update member report threads when a member is banned | `true` |
+| `LOG_MEMBER_KICKS` | Automatically create/update member report threads when a member is kicked | `true` |
+| `LOG_MEMBER_MESSAGE_DELETES` | Automatically log moderator message deletions to member report threads | `true` |
 
 > **Tip:** Per-server configurable settings can be updated dynamically per-server in Discord using `/boredbot settings set key:<KEY> value:<VALUE>` without restarting the bot.
 
@@ -124,10 +132,11 @@ CHANNEL_BOT_ADMIN=222222222222222222
 CHANNEL_BOT_LOG=333333333333333333
 CHANNEL_MEETUPS=444444444444444444
 CHANNEL_MEETUPS_DIR=555555555555555555
-CHANNEL_SHITPOST=666666666666666666
-CHANNEL_THROWDOWN=777777777777777777
-ONBOARDING_CHANNEL_ID=888888888888888888
-ONBOARDING_ROLE_ID=999999999999999999
+CHANNEL_MEMBER_REPORTS=666666666666666666
+CHANNEL_SHITPOST=777777777777777777
+CHANNEL_THROWDOWN=888888888888888888
+ONBOARDING_CHANNEL_ID=999999999999999999
+ONBOARDING_ROLE_ID=101010101010101010
 REDDIT_SECRET=your_reddit_secret
 ```
 
@@ -232,8 +241,10 @@ pnpm start
 
 | Script | Command | Description |
 |---|---|---|
-| `start` | `NODE_ENV=production tsx src/Main.ts` | Run the bot in production mode |
-| `dev` | `ts-node-dev ./src/main.ts` | Run with live reload for development |
+| `build` | `tsc` | Compile TypeScript to JavaScript in `build/` |
+| `start` | `NODE_ENV=production node build/Main.js` | Run the compiled bot in production mode |
+| `start:ts` | `NODE_ENV=production tsx src/Main.ts` | Run TypeScript source directly with `tsx` |
+| `dev` | `ts-node-dev ./src/Main.ts` | Run with live reload for development |
 | `test` | `jest` | Run the test suite |
 | `test:watch` | `jest --watch` | Run tests in watch mode |
 
@@ -258,13 +269,13 @@ General-purpose commands available to all server members.
 
 ---
 
-### /bored ban `<user>`
+### /bored ban `<target>`
 
 Playfully "ban" a user from the server with a randomly selected funny reason.
 
 | Option | Required | Description |
 |---|---|---|
-| `user` | ✅ | The user to playfully ban |
+| `target` | ✅ | The target to playfully ban |
 
 > **Note:** Watch out! There is a 1-in-6 chance that the command backfires and times out the command caller for 60 seconds with a self-ban reason.
 
@@ -321,6 +332,18 @@ Announce a game session in a channel listed in `PING_WHITELIST_CHANNELS`, or in 
 ### /bored pong
 
 A simple health check — replies with `Ping?` to confirm the bot is alive.
+
+---
+
+### /bored report `<user>` `<content>` `[message-link]`
+
+Report suspicious user behavior or messages directly to the server's member reporting forum (`CHANNEL_MEMBER_REPORTS`). An alert is also broadcast to `CHANNEL_ADMIN`.
+
+| Option | Required | Description |
+|---|---|---|
+| `user` | ✅ | The user whose message or behavior looks suspicious |
+| `content` | ✅ | What happened, why it looks suspicious, or additional context |
+| `message-link` | ❌ | Optional Discord message link for the suspicious content |
 
 ---
 
@@ -466,6 +489,8 @@ Manage per-server and global bot settings at runtime — no restart required.
 | `set <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Update a setting's value |
 | `append <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Append a value to a comma-separated list setting |
 | `remove_item <key> <value>` | `key` (dropdown), `value`, `global` (bool) | Remove a value from a comma-separated list setting |
+| `export` | `global` (bool) | Export all settings as an encoded hash and generate an admin dashboard link |
+| `import <data>` | `data` (string), `global` (bool) | Import and apply settings from an exported hash, dashboard URL, or JSON string |
 
 #### Examples: How to Set Variables via Slash Commands
 
@@ -497,7 +522,17 @@ To set or update any of these variables in Discord, an admin with **Manage Serve
    /boredbot settings remove_item key:PING_WHITELIST_CHANNELS value:987654321098765432
    ```
 
-**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `MEETUP_RECURRENCE_WINDOW_DAYS`, `MEETUP_TIMEZONE`, `MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS`, `MEETUP_AUTOCANCEL_BEFORE_START_HOURS`, `PING_WHITELIST_CHANNELS`, `ALLOW_EVERYONE_PING`, `COOLDOWN_USER_PING`, `COOLDOWN_ROLE_PING`, `LOG_MEMBER_BANS`, `LOG_MEMBER_KICKS`, `LOG_MEMBER_MESSAGE_DELETES`
+6. **Export settings to open in the web admin dashboard or create a backup:**
+   ```
+   /boredbot settings export
+   ```
+
+7. **Import settings from a dashboard URL, Base64 hash, or JSON:**
+   ```
+   /boredbot settings import data:https://qczar.github.io/bhabot/admin#eyJ...
+   ```
+
+**Configurable keys:** `CHANNEL_ADMIN`, `CHANNEL_BOT_ADMIN`, `CHANNEL_MEETUPS`, `CHANNEL_MEETUPS_DIR`, `CHANNEL_MEMBER_REPORTS`, `CHANNEL_SHITPOST`, `CHANNEL_THROWDOWN`, `CHANNEL_BOT_LOG`, `ONBOARDING_CHANNEL_ID`, `ONBOARDING_ROLE_ID`, `ONBOARDING_MIN_LENGTH`, `REDDIT_SECRET`, `MEETUP_RECURRENCE_WINDOW_DAYS`, `MEETUP_TIMEZONE`, `MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS`, `MEETUP_AUTOCANCEL_BEFORE_START_HOURS`, `PING_WHITELIST_CHANNELS`, `ALLOW_EVERYONE_PING`, `COOLDOWN_USER_PING`, `COOLDOWN_ROLE_PING`, `LOG_MEMBER_BANS`, `LOG_MEMBER_KICKS`, `LOG_MEMBER_MESSAGE_DELETES`
 
 ---
 
@@ -524,18 +559,19 @@ Admin meetup utilities.
 
 ### /boredbot mod (group)
 
-Moderator utilities for tracking user notes and managing multipost detection.
+Moderator utilities for tracking user notes, checking audit history, and managing multipost detection.
 
 | Subcommand | Options | Description |
 |---|---|---|
-| `log <user> <note>` | `user` (mention), `note` | Save a mod note for a user; broadcast to `CHANNEL_BOT_LOG` |
-| `lookup <user>` | `user` (mention) | View all saved notes for a user |
+| `log <note> [user]` | `note` (string), `user` (optional mention) | Save a mod note for a user; posts directly into the member's report thread in `CHANNEL_MEMBER_REPORTS` and broadcasts to `CHANNEL_BOT_LOG`. Defaults to current thread's member if used in a report thread. |
+| `lookup [user]` | `user` (optional mention) | View all saved notes for a user (defaults to current thread's member) |
+| `audit-log [user]` | `user` (optional mention) | Fetch recent server audit log actions (bans, kicks, message deletes, role updates) for a user (defaults to current thread's member) |
 | `echo <text>` | `text` | Make the bot say something in the current channel |
 | `multipost-exempt-add <role>` | `role` | Add a role to the multipost detection exemption list |
 | `multipost-exempt-remove <role>` | `role` | Remove a role from the multipost exemption list |
 | `multipost-exempt-list` | — | List all roles currently exempt from multipost detection |
 
-> `log` and `lookup` replies are ephemeral unless used in `CHANNEL_ADMIN`.
+> `log`, `lookup`, and `audit-log` replies are ephemeral unless used in `CHANNEL_ADMIN`.
 
 ---
 
@@ -553,7 +589,16 @@ Once the member posts (or edits) an introduction that meets the length requireme
 
 ### Multipost Detection
 
-The bot watches all incoming messages and detects if users are posting the same content across multiple channels in a short window. Roles added via `/boredbot mod multipost-exempt-add` are excluded from this detection.
+The bot watches all incoming messages and detects if users are posting the same content across multiple channels in a short window (15-second cache window). Users who multipost are automatically timed out for 6 hours, and an alert is sent to `CHANNEL_BOT_ADMIN`. Roles added via `/boredbot mod multipost-exempt-add` and administrators are excluded from this detection.
+
+### Moderation Logging & Member Reports
+
+When configured with `CHANNEL_MEMBER_REPORTS` (a Discord Forum channel), the bot automatically aggregates moderation actions and reports into dedicated per-member forum threads (titled `<user_id> - <username> - <nickname>`):
+
+1. **Member Bans (`LOG_MEMBER_BANS`):** When a member is banned, an embed with the banned user, moderator, and reason is posted to their forum thread.
+2. **Member Kicks (`LOG_MEMBER_KICKS`):** When a member is kicked by a moderator (distinguished from voluntary leaves via audit logs), an embed is posted to their forum thread.
+3. **Moderator Message Deletions (`LOG_MEMBER_MESSAGE_DELETES`):** When a moderator deletes a member's message, an embed with author, moderator, channel, message content, and attachment URLs is posted to the author's report thread.
+4. **Member Reports & Mod Notes:** Reports filed via `/bored report` and notes logged via `/boredbot mod log` automatically post into the same member thread. If the thread was archived, the bot unarchives it automatically.
 
 ### Meetup Organizer Reminders & Auto-Cancellation
 
