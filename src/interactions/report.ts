@@ -53,28 +53,9 @@ const makeReportEmbed = (
    timestamp: new Date ().toISOString ()
 });
 
-const makeAdminAlertEmbed = (
-   thread: Discord.ThreadChannel,
-   user: Discord.User,
-   reporter: Discord.User,
-   sourceChannelId: string | null
-): Discord.APIEmbed => ({
-   title: "New Member Report",
-   color: 0xffc857,
-   description: `A new report was filed in ${thread}.`,
-   fields: [
-      { name: "Reported User", value: `<@${user.id}> (${user.id})` },
-      { name: "Reported By", value: `<@${reporter.id}> (${reporter.id})` },
-      { name: "Source Channel", value: sourceChannelId ? `<#${sourceChannelId}> (${sourceChannelId})` : "Unknown" },
-      { name: "Report Thread", value: `${thread}` }
-   ],
-   timestamp: new Date ().toISOString ()
-});
-
 const sendAdminAlert = async (
    interaction: Discord.ChatInputCommandInteraction,
-   thread: Discord.ThreadChannel,
-   user: Discord.User
+   thread: Discord.ThreadChannel
 ): Promise<void> => {
    const adminChannelId = getSetting (interaction.guildId, "CHANNEL_ADMIN");
    const adminChannel = await interaction.client.channels.fetch (adminChannelId);
@@ -84,7 +65,7 @@ const sendAdminAlert = async (
    }
 
    await adminChannel.send ({
-      embeds: [makeAdminAlertEmbed (thread, user, interaction.user, interaction.channelId)],
+      content: `🚨 **A member report has been filed in ${thread}.**`,
       allowedMentions: { parse: [] }
    });
 };
@@ -127,7 +108,7 @@ export const handleReportSubcommand = async (interaction: Discord.ChatInputComma
          });
       }
 
-      await sendAdminAlert (interaction, thread, user).catch (interactionFailed);
+      await sendAdminAlert (interaction, thread).catch (interactionFailed);
 
       await interaction.editReply ({
          content: "✅ Report filed. Thank you for helping keep an eye on things."
