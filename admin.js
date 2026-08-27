@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyHashBtn = document.getElementById('copyHashBtn');
   const copyImportCmdBtn = document.getElementById('copyImportCmdBtn');
 
-  // Definition of all 21 bot configuration settings
+  // Definition of all 23 bot configuration settings
   const settingsDefinitions = [
     // Category 1: Mention Cooldowns & Pings
     {
@@ -83,6 +83,28 @@ document.addEventListener('DOMContentLoaded', () => {
       max: 365,
       unit: 'days',
       description: 'How many days in advance recurring meetup occurrences are automatically generated.'
+    },
+    {
+      id: 'MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS',
+      category: 'meetup',
+      name: 'Auto-Cancel Missing Organizer Window',
+      key: 'MEETUP_AUTOCANCEL_NO_ORGANIZER_HOURS',
+      type: 'number',
+      default: 24,
+      min: 0,
+      unit: 'hours',
+      description: 'Hours to wait before auto-cancelling a meetup if no organizer is RSVP\'d (0 to disable).'
+    },
+    {
+      id: 'MEETUP_AUTOCANCEL_BEFORE_START_HOURS',
+      category: 'meetup',
+      name: 'Auto-Cancel Start Proximity Deadline',
+      key: 'MEETUP_AUTOCANCEL_BEFORE_START_HOURS',
+      type: 'number',
+      default: 2,
+      min: 0,
+      unit: 'hours',
+      description: 'Hours before event start time to auto-cancel if no organizer is RSVP\'d (0 to disable).'
     },
 
     // Category 3: Channels & Logs
