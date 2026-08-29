@@ -7,6 +7,7 @@ import { handleActivityAdminSubcommand, handleActivityAutocomplete } from "./act
 import { handleModSubcommand } from "./mod";
 import { handleMeetupAdminSubcommand } from "./meetup";
 import { serializeSettings, deserializeSettings, adminDashboardUrl, applyImportedSettings } from "./settings-serializer";
+import { validateGuildSettings, getSettingChangeWarnings } from "../features/settings-validator";
 
 const log = logger("boredbot");
 
@@ -84,6 +85,11 @@ const config = new SlashCommandBuilder()
                 .setDescription("The value to remove")
                 .setRequired(true)
             )
+            .addBooleanOption(addGlobalOption)
+        )
+        .addSubcommand(subcommand => subcommand
+            .setName("check")
+            .setDescription("Audit all settings, dependencies, and Discord permissions")
             .addBooleanOption(addGlobalOption)
         )
         .addSubcommand(subcommand => subcommand
@@ -243,6 +249,73 @@ export const boredbot: interaction = {
             const targetGuildId = isGlobal ? null : interaction.guildId;
             const scopeName = isGlobal ? "Global" : `Server (${targetGuildId})`;
 
+            if (subcommand === "check") {
+                await interaction.deferReply({ ephemeral: true });
+                const report = await validateGuildSettings(isGlobal ? null : interaction.guild, targetGuildId);
+
+                const statusColor = report.summary.error > 0 ? 0xED4245 : (report.summary.warning > 0 ? 0xFEE75C : 0x57F287);
+                const statusTitle = report.summary.error > 0
+                    ? `❌ Settings Audit: Issues Detected [${scopeName}]`
+                    : (report.summary.warning > 0 || report.summary.fallback > 0
+                        ? `⚠️ Settings Audit: Configuration Notices [${scopeName}]`
+                        : `✅ Settings Audit: All Clear [${scopeName}]`);
+
+                const fields: Discord.APIEmbedField[] = [
+                    {
+                        name: "Audit Summary",
+                        value: [
+                            `✅ **Healthy:** ${report.summary.healthy}`,
+                            `🔁 **Fallback Active:** ${report.summary.fallback}`,
+                            `⚠️ **Warnings:** ${report.summary.warning}`,
+                            `❌ **Errors / Broken:** ${report.summary.error}`
+                        ].join("  •  ")
+                    }
+                ];
+
+                const errors = report.items.filter(i => i.status === "error");
+                const warnings = report.items.filter(i => i.status === "warning");
+                const fallbacks = report.items.filter(i => i.status === "fallback");
+                const healthy = report.items.filter(i => i.status === "healthy");
+
+                if (errors.length > 0) {
+                    fields.push({
+                        name: `❌ Errors / Broken Dependencies (${errors.length})`,
+                        value: errors.map(i => `• **${i.title}**: ${i.message}`).join("\n").slice(0, 1024)
+                    });
+                }
+
+                if (warnings.length > 0) {
+                    fields.push({
+                        name: `⚠️ Incomplete / Warnings (${warnings.length})`,
+                        value: warnings.map(i => `• **${i.title}**: ${i.message}`).join("\n").slice(0, 1024)
+                    });
+                }
+
+                if (fallbacks.length > 0) {
+                    fields.push({
+                        name: `🔁 Fallback Routing Active (${fallbacks.length})`,
+                        value: fallbacks.map(i => `• **${i.title}**: ${i.message}`).join("\n").slice(0, 1024)
+                    });
+                }
+
+                if (healthy.length > 0 && errors.length === 0 && warnings.length === 0) {
+                    fields.push({
+                        name: `✅ Verified Healthy (${healthy.length})`,
+                        value: healthy.map(i => `• **${i.title}**`).slice(0, 10).join("\n") + (healthy.length > 10 ? `\n*+${healthy.length - 10} more*` : "")
+                    });
+                }
+
+                await interaction.editReply({
+                    embeds: [{
+                        title: statusTitle,
+                        description: `Audit performed for **${scopeName}** at <t:${Math.floor(Date.now() / 1000)}:T>.`,
+                        color: statusColor,
+                        fields
+                    }]
+                });
+                return;
+            }
+
             if (subcommand === "export") {
                 const hash = serializeSettings(targetGuildId);
                 const formUrl = env.MEETUP_FORM_URL || "https://qczar.github.io/bhabot/";
@@ -304,6 +377,13 @@ export const boredbot: interaction = {
                     lines.push(`\nℹ️ *Ignored unknown keys: ${result.ignored.map(k => `\`${k}\``).join(", ")}*`);
                 }
 
+                // Check post-import dependency health
+                const importReport = await validateGuildSettings(isGlobal ? null : interaction.guild, targetGuildId);
+                const importWarnings = importReport.items.filter(i => i.status === "error" || i.status === "warning");
+                if (importWarnings.length > 0) {
+                    lines.push(`\n⚠️ **Configuration Alerts:**\n` + importWarnings.map(w => `${w.symbol} **${w.title}**: ${w.message}`).join("\n"));
+                }
+
                 log.info(`Imported ${result.updated.length} settings in scope ${scopeName} by ${interaction.user.tag}`, {
                     guildId: targetGuildId,
                     updatedCount: result.updated.length,
@@ -328,7 +408,12 @@ export const boredbot: interaction = {
                 }
                 try {
                     await updateSetting(world.mongodb, targetGuildId, key, value);
-                    await interaction.reply({ content: `[${scopeName}] Successfully updated **${key}** to \`${value}\``, ephemeral: true });
+                    const warnings = getSettingChangeWarnings(targetGuildId, key, value);
+                    let replyContent = `[${scopeName}] Successfully updated **${key}** to \`${value}\``;
+                    if (warnings.length > 0) {
+                        replyContent += "\n\n" + warnings.join("\n");
+                    }
+                    await interaction.reply({ content: replyContent, ephemeral: true });
                     log.info(`Setting ${key} updated by ${interaction.user.tag} in scope ${scopeName}`, { key, value, guildId: targetGuildId });
                 } catch (e) {
                     log.error(`Failed to update setting ${key}`, e);
@@ -353,7 +438,12 @@ export const boredbot: interaction = {
                 
                 try {
                     await updateSetting(world.mongodb, targetGuildId, key, newValue);
-                    await interaction.reply({ content: `[${scopeName}] Successfully appended to **${key}**. New value: \`${newValue}\``, ephemeral: true });
+                    const warnings = getSettingChangeWarnings(targetGuildId, key, newValue);
+                    let replyContent = `[${scopeName}] Successfully appended to **${key}**. New value: \`${newValue}\``;
+                    if (warnings.length > 0) {
+                        replyContent += "\n\n" + warnings.join("\n");
+                    }
+                    await interaction.reply({ content: replyContent, ephemeral: true });
                     log.info(`Setting ${key} appended by ${interaction.user.tag} in scope ${scopeName}`, { key, value: newValue, guildId: targetGuildId });
                 } catch (e) {
                     log.error(`Failed to append to setting ${key}`, e);
@@ -378,7 +468,12 @@ export const boredbot: interaction = {
                 
                 try {
                     await updateSetting(world.mongodb, targetGuildId, key, newValue);
-                    await interaction.reply({ content: `[${scopeName}] Successfully removed from **${key}**. New value: \`${newValue}\``, ephemeral: true });
+                    const warnings = getSettingChangeWarnings(targetGuildId, key, newValue);
+                    let replyContent = `[${scopeName}] Successfully removed from **${key}**. New value: \`${newValue}\``;
+                    if (warnings.length > 0) {
+                        replyContent += "\n\n" + warnings.join("\n");
+                    }
+                    await interaction.reply({ content: replyContent, ephemeral: true });
                     log.info(`Setting ${key} item removed by ${interaction.user.tag} in scope ${scopeName}`, { key, value: newValue, guildId: targetGuildId });
                 } catch (e) {
                     log.error(`Failed to remove item from setting ${key}`, e);

@@ -68,33 +68,54 @@ export const postToMemberReportThread = async (
    actionReason?: string
 ): Promise<Discord.ThreadChannel | null> => {
    try {
-      const forum = await getReportForum(guild);
-      const title = makeThreadTitle(user, member);
-      const existingThread = await findMemberReportThread(forum, user.id);
+      const channelId = getSetting(guild.id, "CHANNEL_MEMBER_REPORTS");
+      if (channelId) {
+         try {
+            const forum = await getReportForum(guild);
+            const title = makeThreadTitle(user, member);
+            const existingThread = await findMemberReportThread(forum, user.id);
 
-      if (existingThread) {
-         if (existingThread.archived) {
-            await existingThread.setArchived(false, actionReason ?? "New moderation event logged");
+            if (existingThread) {
+               if (existingThread.archived) {
+                  await existingThread.setArchived(false, actionReason ?? "New moderation event logged");
+               }
+
+               await existingThread.send({
+                  embeds: [embed],
+                  allowedMentions: { parse: [] }
+               });
+
+               return existingThread;
+            }
+
+            const newThread = await forum.threads.create({
+               name: title,
+               message: {
+                  embeds: [embed],
+                  allowedMentions: { parse: [] }
+               },
+               reason: actionReason ?? "New member report / moderation event thread created"
+            });
+
+            return newThread;
+         } catch (forumErr) {
+            log.warn(`Could not post to forum channel, attempting fallback to BOT_LOG / ADMIN channel`, { error: String(forumErr) });
          }
-
-         await existingThread.send({
-            embeds: [embed],
-            allowedMentions: { parse: [] }
-         });
-
-         return existingThread;
       }
 
-      const newThread = await forum.threads.create({
-         name: title,
-         message: {
-            embeds: [embed],
-            allowedMentions: { parse: [] }
-         },
-         reason: actionReason ?? "New member report / moderation event thread created"
-      });
+      // Fallback: post directly to CHANNEL_BOT_LOG or CHANNEL_BOT_ADMIN
+      const fallbackChannelId = getSetting(guild.id, "CHANNEL_BOT_LOG") || getSetting(guild.id, "CHANNEL_BOT_ADMIN");
+      if (fallbackChannelId) {
+         const channel = await guild.channels.fetch(fallbackChannelId);
+         if (channel && channel.isTextBased() && "send" in channel) {
+            await channel.send({
+               embeds: [embed],
+               allowedMentions: { parse: [] }
+            });
+         }
+      }
 
-      return newThread;
+      return null;
    } catch (e) {
       log.error(`Failed to post to member report thread for user ${user.id}`, e);
       return null;

@@ -17,6 +17,7 @@ import { meetupCreatorMessage, meetupEditMessage } from "./meetup-creator";
 import { canTransferMeetup, validateTransferTarget } from "./meetup-transfer";
 import { validateClaim } from "./meetup-claim";
 import * as OrganizerReminder from "../commands/meetup/features/OrganizerReminder";
+import { sendAdminAlert } from "../features/settings-validator";
 
 const { commandType, optionType } = Interaction;
 
@@ -199,6 +200,16 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
 
    try {
       await interaction.deferReply ({ ephemeral: true });
+      const dirChannelId = getSetting(interaction.guildId, "CHANNEL_MEETUPS_DIR");
+      if (!dirChannelId && interaction.guild) {
+         await sendAdminAlert(
+            interaction.guild,
+            "Meetup Directory Not Configured",
+            `A meetup "**${options.title}**" was created, but \`CHANNEL_MEETUPS_DIR\` is not set. The directory channel will not list this meetup.`,
+            { Meetup: options.title, Channel: `<#${channel.id}>` }
+         );
+      }
+
       if (!options.recurrence) {
          await createOccurrence ({
             client: interaction.client,

@@ -82,33 +82,56 @@ export const handleReportSubcommand = async (interaction: Discord.ChatInputComma
          throw new Error ("Report command must be used in a guild");
       }
 
-      const forum = await getReportForum (interaction.guild);
-      const member = await interaction.guild.members.fetch (user.id).catch (() => null);
-      const title = makeThreadTitle (user, member);
+      let filedInForum = false;
       const embed = makeReportEmbed (interaction, user, content, messageLink);
-      const existingThread = await findMemberReportThread (forum, user.id);
 
-      const thread = existingThread ?? await forum.threads.create ({
-         name: title,
-         message: {
-            embeds: [embed],
-            allowedMentions: { parse: [] }
-         },
-         reason: `Member report filed by ${interaction.user.tag}`
-      });
+      try {
+         const forum = await getReportForum (interaction.guild);
+         const member = await interaction.guild.members.fetch (user.id).catch (() => null);
+         const title = makeThreadTitle (user, member);
+         const existingThread = await findMemberReportThread (forum, user.id);
 
-      if (existingThread) {
-         if (existingThread.archived) {
-            await existingThread.setArchived (false, "New member report filed");
+         const thread = existingThread ?? await forum.threads.create ({
+            name: title,
+            message: {
+               embeds: [embed],
+               allowedMentions: { parse: [] }
+            },
+            reason: `Member report filed by ${interaction.user.tag}`
+         });
+
+         if (existingThread) {
+            if (existingThread.archived) {
+               await existingThread.setArchived (false, "New member report filed");
+            }
+
+            await existingThread.send ({
+               embeds: [embed],
+               allowedMentions: { parse: [] }
+            });
          }
 
-         await existingThread.send ({
-            embeds: [embed],
-            allowedMentions: { parse: [] }
-         });
-      }
+         await sendAdminAlert (interaction, thread).catch (interactionFailed);
+         filedInForum = true;
+      } catch (forumErr) {
+         // Forum not available or not configured - fall back to text channels
+         const fallbackChannelId = getSetting (interaction.guildId, "CHANNEL_BOT_LOG") || getSetting (interaction.guildId, "CHANNEL_BOT_ADMIN") || getSetting (interaction.guildId, "CHANNEL_ADMIN");
+         if (fallbackChannelId) {
+            const fallbackChannel = await interaction.client.channels.fetch (fallbackChannelId).catch (() => null);
+            if (fallbackChannel && fallbackChannel.isTextBased () && "send" in fallbackChannel) {
+               await fallbackChannel.send ({
+                  content: `🚨 **A member report has been filed (Direct Log Channel Fallback)**`,
+                  embeds: [embed],
+                  allowedMentions: { parse: [] }
+               });
+               filedInForum = true;
+            }
+         }
 
-      await sendAdminAlert (interaction, thread).catch (interactionFailed);
+         if (!filedInForum) {
+            throw forumErr;
+         }
+      }
 
       await interaction.editReply ({
          content: "✅ Report filed. Thank you for helping keep an eye on things."

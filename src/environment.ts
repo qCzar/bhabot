@@ -135,11 +135,33 @@ export const initSettings = async (db: Db) => {
    env = envSchema.parse(env);
 };
 
-export const getSetting = (guildId: string | null | undefined, key: DynamicKey): any => {
+export const getRawSetting = (guildId: string | null | undefined, key: DynamicKey): any => {
    if (guildId && guildSettings[guildId] && guildSettings[guildId][key] !== undefined) {
       return guildSettings[guildId][key];
    }
    return env[key];
+};
+
+export const getSetting = (guildId: string | null | undefined, key: DynamicKey): any => {
+   const val = getRawSetting(guildId, key);
+   if (val !== undefined && val !== null && val !== "") {
+      return val;
+   }
+
+   // Bidirectional fallback between CHANNEL_BOT_ADMIN and CHANNEL_ADMIN
+   if (key === "CHANNEL_BOT_ADMIN") {
+      const fallbackVal = getRawSetting(guildId, "CHANNEL_ADMIN");
+      if (fallbackVal !== undefined && fallbackVal !== null && fallbackVal !== "") {
+         return fallbackVal;
+      }
+   } else if (key === "CHANNEL_ADMIN") {
+      const fallbackVal = getRawSetting(guildId, "CHANNEL_BOT_ADMIN");
+      if (fallbackVal !== undefined && fallbackVal !== null && fallbackVal !== "") {
+         return fallbackVal;
+      }
+   }
+
+   return val;
 };
 
 export const updateSetting = async (db: Db, guildId: string | null, key: DynamicKey, value: any) => {

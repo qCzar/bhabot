@@ -1,6 +1,7 @@
 import * as Discord from "discord.js";
 import { getSetting } from "../environment";
 import { logger } from "../logger";
+import { sendAdminAlert } from "./settings-validator";
 
 const log = logger("onboarding");
 
@@ -11,6 +12,16 @@ export const handleOnboardingMemberAdd = async (member: Discord.GuildMember) => 
     try {
         const channelId = getSetting(guildId, "ONBOARDING_CHANNEL_ID");
         if (!channelId) return;
+
+        const roleId = getSetting(guildId, "ONBOARDING_ROLE_ID");
+        if (!roleId) {
+            await sendAdminAlert(
+                member.guild,
+                "Onboarding Incomplete: Missing Role ID",
+                "A new member joined and was prompted to introduce themselves, but `ONBOARDING_ROLE_ID` is not configured. Members will not receive a role after completing introduction.",
+                { Member: `<@${member.id}> (${member.user.tag})`, "Onboarding Channel": `<#${channelId}>` }
+            );
+        }
 
         const channel = await member.guild.channels.fetch(channelId);
         if (channel?.isTextBased()) {
@@ -36,11 +47,22 @@ const processMessage = async (message: Discord.Message | Discord.PartialMessage)
     if (content.length >= minLength) {
         try {
             const roleId = getSetting(guildId, "ONBOARDING_ROLE_ID");
-            if (!roleId) return;
+            if (!roleId) {
+                log.warn(`Onboarding message met length threshold, but ONBOARDING_ROLE_ID is not configured in guild ${guildId}`);
+                if (message.guild) {
+                    await sendAdminAlert(
+                        message.guild,
+                        "Onboarding Verification Failed: Missing Role ID",
+                        `A user completed their introduction in <#${onboardingChannelId}>, but no role could be granted because \`ONBOARDING_ROLE_ID\` is not configured.`,
+                        { User: `<@${message.author.id}> (${message.author.tag})`, "Message Length": `${content.length} chars` }
+                    );
+                }
+                return;
+            }
 
             // Check if member already has the role
             if (message.member.roles.cache.has(roleId)) {
-                return;
+               return;
             }
 
             // Assign role
@@ -57,6 +79,14 @@ const processMessage = async (message: Discord.Message | Discord.PartialMessage)
             }
         } catch (e) {
             log.error(`Failed to process valid onboarding message for ${message.author?.tag}`, e);
+            if (message.guild) {
+                await sendAdminAlert(
+                    message.guild,
+                    "Onboarding Role Assignment Failed",
+                    `Failed to assign role to <@${message.author.id}>: ${e instanceof Error ? e.message : 'Unknown error'}. Check bot role hierarchy and Manage Roles permissions.`,
+                    { User: `<@${message.author.id}> (${message.author.tag})` }
+                );
+            }
         }
     }
 };
