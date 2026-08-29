@@ -785,3 +785,128 @@ input:checked + .slider:before {
   max-height: 280px;
   overflow-y: auto;
 }
+
+/* Status Styling for Admin Settings */
+.setting-item.status-healthy {
+  border-left: 4px solid #22c55e;
+}
+
+.setting-item.status-fallback {
+  border-left: 4px solid #3b82f6;
+  background-color: rgba(59, 130, 246, 0.04);
+}
+
+.setting-item.status-warning {
+  border-left: 4px solid #f59e0b;
+  background-color: rgba(245, 158, 11, 0.04);
+}
+
+.setting-item.status-error {
+  border-left: 4px solid #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.setting-header.status-healthy {
+  border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+  padding-bottom: 0.4rem;
+}
+
+.setting-header.status-fallback {
+  border-bottom: 1px solid rgba(59, 130, 246, 0.25);
+  padding-bottom: 0.4rem;
+}
+
+.setting-header.status-warning {
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  padding-bottom: 0.4rem;
+}
+
+.setting-header.status-error {
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+  padding-bottom: 0.4rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.725rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.status-badge.status-healthy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge.status-fallback {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-badge.status-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge.status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .status-badge.status-healthy {
+    color: #4ade80;
+  }
+  .status-badge.status-fallback {
+    color: #60a5fa;
+  }
+  .status-badge.status-warning {
+    color: #fbbf24;
+  }
+  .status-badge.status-error {
+    color: #f87171;
+  }
+}
+
+.status-desc-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.825rem;
+  line-height: 1.4;
+  margin-top: 0.35rem;
+}
+
+.status-desc-banner.status-healthy {
+  display: none;
+}
+
+.status-desc-banner.status-fallback {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--text-main);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.status-desc-banner.status-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--text-main);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.status-desc-banner.status-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--text-main);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}

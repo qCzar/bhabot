@@ -279,6 +279,178 @@ document.addEventListener('DOMContentLoaded', () => {
     state[setting.id] = setting.default;
   });
 
+  // Evaluate status and dependencies for color-blind friendly badges and actionable error banners
+  function evaluateSettingStatus(settingId, currentValues) {
+    const val = currentValues[settingId];
+    const strVal = typeof val === 'string' ? val.trim() : (val !== undefined && val !== null ? String(val).trim() : '');
+
+    // Admin Channels
+    if (settingId === 'CHANNEL_BOT_ADMIN') {
+      const adminVal = (currentValues['CHANNEL_ADMIN'] || '').trim();
+      if (strVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Configured', message: 'Bot admin channel is explicitly configured.' };
+      } else if (adminVal) {
+        return { status: 'fallback', symbol: '🔁', label: 'Fallback Active', message: `Unset — automatically falling back to CHANNEL_ADMIN ("${adminVal}").` };
+      } else {
+        return { status: 'error', symbol: '❌', label: 'Missing Admin Channel', message: 'Neither CHANNEL_BOT_ADMIN nor CHANNEL_ADMIN is set. The bot cannot send alerts or execute admin commands.' };
+      }
+    }
+
+    if (settingId === 'CHANNEL_ADMIN') {
+      const botAdminVal = (currentValues['CHANNEL_BOT_ADMIN'] || '').trim();
+      if (strVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Configured', message: 'Admin channel is explicitly configured.' };
+      } else if (botAdminVal) {
+        return { status: 'fallback', symbol: '🔁', label: 'Fallback Active', message: `Unset — automatically falling back to CHANNEL_BOT_ADMIN ("${botAdminVal}").` };
+      } else {
+        return { status: 'error', symbol: '❌', label: 'Missing Admin Channel', message: 'Neither CHANNEL_ADMIN nor CHANNEL_BOT_ADMIN is set.' };
+      }
+    }
+
+    // Onboarding
+    if (settingId === 'ONBOARDING_CHANNEL_ID') {
+      const roleVal = (currentValues['ONBOARDING_ROLE_ID'] || '').trim();
+      if (strVal && !roleVal) {
+        return { status: 'error', symbol: '❌', label: 'Broken Dependency', message: 'ONBOARDING_ROLE_ID must be set when ONBOARDING_CHANNEL_ID is configured, otherwise members cannot receive a role upon completing introduction.' };
+      } else if (strVal && roleVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Linked & Healthy', message: 'Onboarding introductions are active and linked to role verification.' };
+      } else if (!strVal && roleVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Channel Unset', message: 'ONBOARDING_ROLE_ID is set, but ONBOARDING_CHANNEL_ID is empty. Onboarding verification will not trigger.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Optional / Unset', message: 'Onboarding is not configured.' };
+      }
+    }
+
+    if (settingId === 'ONBOARDING_ROLE_ID') {
+      const chanVal = (currentValues['ONBOARDING_CHANNEL_ID'] || '').trim();
+      if (chanVal && !strVal) {
+        return { status: 'error', symbol: '❌', label: 'Missing Required Role', message: 'Required by ONBOARDING_CHANNEL_ID so new members receive access.' };
+      } else if (!chanVal && strVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Unlinked Role', message: 'Role is set, but ONBOARDING_CHANNEL_ID is empty.' };
+      } else if (chanVal && strVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Linked & Healthy', message: 'Role is linked to onboarding introductions.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Optional / Unset', message: 'Onboarding role is not configured.' };
+      }
+    }
+
+    // Meetup & Directory
+    if (settingId === 'CHANNEL_MEETUPS') {
+      const dirVal = (currentValues['CHANNEL_MEETUPS_DIR'] || '').trim();
+      if (strVal && !dirVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Missing Directory', message: 'CHANNEL_MEETUPS is set, but CHANNEL_MEETUPS_DIR is unset. Meetup directory synchronization is inactive.' };
+      } else if (!strVal && dirVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Missing Meetups Channel', message: 'Directory is set, but CHANNEL_MEETUPS is unset (no channel to create/host meetups).' };
+      } else if (strVal && dirVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Linked & Healthy', message: 'Both meetup creation and directory channels are configured.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Optional / Unset', message: 'Meetup channel is not configured.' };
+      }
+    }
+
+    if (settingId === 'CHANNEL_MEETUPS_DIR') {
+      const meetupVal = (currentValues['CHANNEL_MEETUPS'] || '').trim();
+      if (strVal && !meetupVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Missing Meetups Channel', message: 'CHANNEL_MEETUPS_DIR is set, but CHANNEL_MEETUPS is unset.' };
+      } else if (!strVal && meetupVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Directory Unset', message: 'Meetup channel is set, but directory channel is unset.' };
+      } else if (strVal && meetupVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Linked & Healthy', message: 'Directory channel is linked.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Optional / Unset', message: 'Directory channel is not configured.' };
+      }
+    }
+
+    if (settingId === 'MEETUP_TIMEZONE') {
+      if (!strVal) {
+        return { status: 'error', symbol: '❌', label: 'Missing Timezone', message: 'Timezone is required for meetup scheduling.' };
+      }
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: strVal }).format();
+        return { status: 'healthy', symbol: '✅', label: 'Valid Timezone', message: 'Valid IANA timezone.' };
+      } catch (_) {
+        return { status: 'error', symbol: '❌', label: 'Invalid Timezone', message: `"${strVal}" is not a recognized IANA timezone (e.g. America/Chicago, America/New_York).` };
+      }
+    }
+
+    // Moderation & Reports
+    if (settingId === 'CHANNEL_MEMBER_REPORTS') {
+      const botLogVal = (currentValues['CHANNEL_BOT_LOG'] || '').trim();
+      if (strVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Configured', message: 'Forum channel configured for member case file dossiers.' };
+      } else if (botLogVal) {
+        return { status: 'fallback', symbol: '🔁', label: 'Fallback Active', message: `Unset — member reports and mod notes will route directly to CHANNEL_BOT_LOG ("${botLogVal}").` };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Optional / Unset', message: 'Member reports forum is not configured.' };
+      }
+    }
+
+    if (settingId === 'CHANNEL_BOT_LOG') {
+      if (strVal) {
+        return { status: 'healthy', symbol: '✅', label: 'Configured', message: 'Text channel configured for real-time mod log feed.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Optional / Unset', message: 'Bot log channel is not configured.' };
+      }
+    }
+
+    // Reddit
+    if (settingId === 'REDDIT_SECRET') {
+      const shitpostVal = (currentValues['CHANNEL_SHITPOST'] || '').trim();
+      if (strVal && !shitpostVal) {
+        return { status: 'error', symbol: '❌', label: 'Missing Destination', message: 'REDDIT_SECRET is set, but CHANNEL_SHITPOST is missing. Webhooks will fail.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Configured', message: 'Reddit webhook secret is set.' };
+      }
+    }
+
+    if (settingId === 'CHANNEL_SHITPOST') {
+      const secretVal = (currentValues['REDDIT_SECRET'] || '').trim();
+      if (strVal && !secretVal) {
+        return { status: 'warning', symbol: '⚠️', label: 'Missing Secret', message: 'CHANNEL_SHITPOST is set, but REDDIT_SECRET is empty.' };
+      } else {
+        return { status: 'healthy', symbol: '✅', label: 'Configured', message: 'Shitpost channel is configured.' };
+      }
+    }
+
+    return { status: 'healthy', symbol: '✅', label: 'Healthy', message: 'Setting is healthy.' };
+  }
+
+  function updateSingleSettingStatus(setting) {
+    const item = document.getElementById(`item-${setting.id}`);
+    if (!item) return;
+
+    const header = item.querySelector('.setting-header');
+    const badge = item.querySelector(`#status-badge-${setting.id}`);
+    const banner = item.querySelector(`#status-desc-${setting.id}`);
+
+    const status = evaluateSettingStatus(setting.id, state);
+
+    // Update item and header classes
+    ['status-healthy', 'status-fallback', 'status-warning', 'status-error'].forEach(cls => {
+      item.classList.remove(cls);
+      if (header) header.classList.remove(cls);
+      if (badge) badge.classList.remove(cls);
+      if (banner) banner.classList.remove(cls);
+    });
+
+    item.classList.add(`status-${status.status}`);
+    if (header) header.classList.add(`status-${status.status}`);
+    if (badge) {
+      badge.classList.add(`status-${status.status}`);
+      badge.innerHTML = `${status.symbol} ${escapeHtml(status.label)}`;
+    }
+    if (banner) {
+      banner.classList.add(`status-${status.status}`);
+      banner.innerHTML = `<span>${status.symbol}</span> <span>${escapeHtml(status.message)}</span>`;
+    }
+  }
+
+  function updateAllSettingStatuses() {
+    settingsDefinitions.forEach(setting => {
+      updateSingleSettingStatus(setting);
+    });
+  }
+
   // Render setting fields into respective category containers
   function renderSettings() {
     settingsDefinitions.forEach(setting => {
@@ -316,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="setting-title">
               ${escapeHtml(setting.name)}
               <span class="setting-key">${escapeHtml(setting.key)}</span>
+              <span class="status-badge" id="status-badge-${setting.id}"></span>
             </div>
             <div class="setting-desc">${escapeHtml(setting.description)}</div>
           </div>
@@ -323,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${controlHTML}
           </div>
         </div>
+        <div class="status-desc-banner" id="status-desc-${setting.id}"></div>
         <div class="inline-cmd-box">
           <div class="inline-cmd-text" id="cmd-text-${setting.id}">
             <!-- Rendered by JS -->
@@ -358,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state[setting.id] = e.target.value;
           }
           updateSingleSettingCommand(setting);
+          updateAllSettingStatuses();
           updateSummaryOutput();
         });
 
@@ -369,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
               e.target.value = clampedVal;
               state[setting.id] = clampedVal;
               updateSingleSettingCommand(setting);
+              updateAllSettingStatuses();
               updateSummaryOutput();
             }
           });
@@ -384,8 +560,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Initial command render
+      // Initial command render and status
       updateSingleSettingCommand(setting);
+      updateSingleSettingStatus(setting);
     });
   }
 
@@ -509,6 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    updateAllSettingStatuses();
     updateSummaryOutput();
 
     if (showFeedback) {
@@ -623,6 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateSingleSettingCommand(setting);
       });
+      updateAllSettingStatuses();
       updateSummaryOutput();
       showToast('Settings reset to defaults');
     }
