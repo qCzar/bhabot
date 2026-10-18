@@ -7,6 +7,9 @@ import { meetupStarterPost } from "../common/MeetupStarter";
 import * as M from "../common/Meetup";
 import * as db from "../db/meetups";
 import { render } from "./RenderAnnouncement";
+import { logger } from "../../../logger";
+
+const log = logger ("meetup:create-occurrence");
 
 type CreateOccurrenceOptions = {
    client: Discord.Client;
@@ -66,8 +69,9 @@ export async function createOccurrence(input: CreateOccurrenceOptions): Promise<
       return db.insert ({ ...meetup, announcementID: post.id });
    }
    catch (error) {
-      await thread?.delete ().catch (() => undefined);
-      await starterPost?.delete ().catch (() => undefined);
+      log.error ("Failed to create meetup occurrence, cleaning up", error);
+      await thread?.delete ().catch (e => log.error ("Failed to delete thread during cleanup", e));
+      await starterPost?.delete ().catch (e => log.error ("Failed to delete starter post during cleanup", e));
       throw error;
    }
 }

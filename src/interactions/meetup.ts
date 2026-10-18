@@ -13,11 +13,14 @@ import { refresh } from "../commands/meetup/features/RenderAnnouncement";
 import { createOccurrence } from "../commands/meetup/features/CreateOccurrence";
 import { generateSeries, reconcileSeries } from "../commands/meetup/features/GenerateRecurringMeetups";
 import { env, getSetting } from "../environment";
+import { logger } from "../logger";
 import { meetupCreatorMessage, meetupEditMessage } from "./meetup-creator";
 import { canTransferMeetup, validateTransferTarget } from "./meetup-transfer";
 import { validateClaim } from "./meetup-claim";
 import * as OrganizerReminder from "../commands/meetup/features/OrganizerReminder";
 import { sendAdminAlert } from "../features/settings-validator";
+
+const log = logger ("meetup:create");
 
 const { commandType, optionType } = Interaction;
 
@@ -260,6 +263,7 @@ async function handleCreate (interaction: Discord.ChatInputCommandInteraction) {
       return interaction.editReply ({ content: `✅ Recurring meetup **${options.title}** created with ${created} occurrence(s) posted.` });
    }
    catch (e) {
+      log.error ("Failed to create meetup", e);
       const content = "⚠️ Bot broke unexpectedly while trying to post meetup.";
       return interaction.deferred ? interaction.editReply ({ content }) : interaction.reply ({ content, ephemeral: true });
    }
